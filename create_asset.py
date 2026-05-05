@@ -1,8 +1,16 @@
 # TO DO :
 # - checker la modL ET la modH
+#        - si il n'y a pas de modH, mettre la modL dans render
+#        - si il n'y a pas de modL, à voir
 # - renommer les nodes qui ne le sont pas déjà (je sais pas si c'est indispensable, à voir)
+# - trouver un moyen de récup le nom de l'asset d'une manière ou d'une autre sans passer par une ligne de commande (ou trouver un moyen de contourner le Post-render script dans houdini pour executer un script après un rendu)
 
-import hou, os, json
+
+print("execute create_asset.py")
+# doit être lancé avec hython ou houdini
+
+#import modules
+import hou, os, json, argparse
 
 # importe path.json
 with open('C:/Users/3D4/Downloads/04_usd/TEST_USD_PROJECT/08_Dev/path.json', 'r') as file:
@@ -12,15 +20,26 @@ with open('C:/Users/3D4/Downloads/04_usd/TEST_USD_PROJECT/08_Dev/path.json', 'r'
 #=========================================================== SET VARIABLES ===============================================================
 #=========================================================================================================================================
 
+# customisation de la ligne de commande pour faire passer le nom de l'asset à traiter
+parser = argparse.ArgumentParser()
+parser.add_argument("--assetName", type=str, help="nom de l'asset à traiter")
+args = parser.parse_args()
+
+if args.assetName:
+    asset_name = args.assetName
+else:
+    asset_name = "table" # trouver un moyen de récup le nom de l'asset d'une manière ou d'une autre #####################################################################################################################################
+
+
 project_path = jsonPath["global"]["project_path"]
 assets = os.listdir(project_path + "/03_Production/Assets")
 
-asset_name = "table"
 tasks = os.listdir(project_path + "/03_Production/Assets/" + asset_name + "/Export")
 usd_file_format = "usda"
 
 string_to_detect = "ModH"
 is_variant = False
+
 
 
 previews_deleted = False
@@ -36,7 +55,6 @@ for i in range(len(tasks)):
         tasks[i-contrecompte] = tasks[i-contrecompte].replace(string_to_detect, asset_name)
 
 variants = tasks
-# tasks = os.listdir(project_path + "/03_Production/Assets/" + asset_name + "/Export")
 
 variant_index = 0
 for variant in variants:
@@ -88,7 +106,6 @@ if is_variant:
 
     variant_number = 0
     for node in compGeo_nodes:
-        # print(node +" "+str(variant_number))
         compGeoVar_node.setInput(variant_number, restructSceneGraph_nodes[node])
         variant_number += 1
 
@@ -107,9 +124,7 @@ else:
 compOutput_node = lopnet.createNode("componentoutput")
 compOutput_node.setInput(0, compMat_node)
 compOutput_node.parm("rootprim").set("/" + asset_name)
-# compOutput_node.parm("filename").set("" + asset_name + "`." + usd_file_format)
 compOutput_node.parm("filename").set(asset_name + "." + usd_file_format)
-# compOutput_node.parm("lopoutput").set(project_path + "/04_USD/asset/\`chs(\"name\")\`/\`chs(\"filename\")\`")
 compOutput_node.parm("lopoutput").set(project_path + "/04_USD/asset/" + asset_name + "/" + asset_name + "." + usd_file_format)
 compOutput_node.parm("payloadlayer").set("payload." + usd_file_format)
 compOutput_node.parm("geolayer").set("geo." + usd_file_format)
