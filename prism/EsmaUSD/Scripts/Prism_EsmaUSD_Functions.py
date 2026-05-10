@@ -44,30 +44,7 @@ class Prism_EsmaUSD_Functions(object):
         self.core = core
         self.plugin = plugin
 
-        self.core.registerCallback("onProjectBrowserStartup", self.onProjectBrowserStartup, plugin=self)
-
     # if returns true, the plugin will be loaded by Prism
     @err_catcher(name=__name__)
     def isActive(self):
         return True
-
-    @err_catcher(name=__name__)
-    def onProjectBrowserStartup(self, origin):
-        # Find the index of the "Products" tab to insert "Test" before it
-        tbw = origin.tbw_project
-        products_index = -1
-        for i in range(tbw.count()):
-            if tbw.tabText(i).lower() == "products":
-                products_index = i
-                break
-
-        # Create the Test tab widget
-        w_test = QWidget()
-        layout = QVBoxLayout(w_test)
-        label = QLabel("Test Menu - EsmaUSD Plugin")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
-
-        # Insert the tab before "Products" (or at the end if not found)
-        insert_index = products_index if products_index >= 0 else tbw.count()
-        tbw.insertTab(insert_index, w_test, "Test")
