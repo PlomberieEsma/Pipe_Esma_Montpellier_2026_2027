@@ -1,7 +1,4 @@
 # TO DO :
-# - checker la modL ET la modH
-#        - si il n'y a pas de modH, mettre la modL dans render
-#        - si il n'y a pas de modL, à voir
 # - renommer les nodes qui ne le sont pas déjà (je sais pas si c'est indispensable, à voir)
 # - trouver un moyen de récup le nom de l'asset d'une manière ou d'une autre sans passer par une ligne de commande (ou trouver un moyen de contourner le Post-render script dans houdini pour executer un script après un rendu)
 
@@ -15,6 +12,10 @@ import hou, os, json, argparse
 # importe path.json
 with open('C:/Users/3D4/Downloads/04_usd/TEST_USD_PROJECT/08_Dev/path.json', 'r') as file:
     jsonPath = json.load(file)
+
+class Error(Exception):
+    # utiliser pour print une erreur
+    pass
 
 #=========================================================================================================================================
 #=========================================================== SET VARIABLES ===============================================================
@@ -36,11 +37,29 @@ assets = os.listdir(project_path + "/03_Production/Assets")
 
 tasks = os.listdir(project_path + "/03_Production/Assets/" + asset_name + "/Export")
 usd_file_format = "usda"
+print(tasks)
 
-string_to_detect = "ModH"
+is_ModH = False
+is_ModL = False
+
+# detecte si il y a une ModH et / ou une ModL
+if "ModH" in tasks:
+    string_to_detect = "ModH"
+    is_ModH = True
+    if "ModL" in tasks:
+        is_ModL = True
+elif "ModL" in tasks:
+    string_to_detect = "ModL"
+    is_ModL = True
+else:
+    raise Error("Pas de modL ou de ModH, il faut au moins une geo pour créer un asset")
+
+print("is ModH = "+str(is_ModH))
+print("is ModL = "+str(is_ModL))
+
+
+# détection des variants et création d'une liste
 is_variant = False
-
-
 
 previews_deleted = False
 contrecompte = 0
@@ -64,6 +83,7 @@ for variant in variants:
         variants[variant_index] = variant + "_var1"
     variant_index += 1
 
+print(variants)
 
 compGeo_nodes = {}
 restructSceneGraph_nodes = {}
@@ -81,9 +101,17 @@ for variant in variants:
     compGeo_nodes.update({variant : lopnet.createNode("componentgeometry")})
     compGeo_nodes[variant].setName("in_" + variant)
     compGeo_nodes[variant].parm("sourceinput").set(3)
-    compGeo_nodes[variant].parm("sourceusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModH" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModH" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
-    compGeo_nodes[variant].parm("sourceproxyusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModL" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModL" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
-    compGeo_nodes[variant].parm("sourcesimproxyusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModL" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModL" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
+    if is_ModH:
+        compGeo_nodes[variant].parm("sourceusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModH" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModH" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
+    else:
+        compGeo_nodes[variant].parm("sourceusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModL" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModL" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
+    
+    if is_ModL:
+        compGeo_nodes[variant].parm("sourceproxyusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModL" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModL" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
+    else:
+        compGeo_nodes[variant].parm("sourceproxyusdref").set(project_path + "/03_Production/Assets/" + asset_name + "/Export/ModH" + variant.replace("_var1", "").replace(asset_name, "") + "/master/" + asset_name + "_ModH" + variant.replace("_var1", "").replace(asset_name, "") + "_master." + usd_file_format)
+    
+    compGeo_nodes[variant].parm("sourcesimproxyusdref").set(compGeo_nodes[variant].parm("sourceproxyusdref").eval())
 
 
     # restructure scene graph to delete sim proxy
