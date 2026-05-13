@@ -24,10 +24,10 @@
         "publishCommentLength": 3,
         "required_plugins": [],
         "expectedPrjPath": "",
-        "allowAdditionalTasks": false,
+        "allowAdditionalTasks": true,
         "departments_asset": [
             {
-                "abbreviation": "mod",
+                "abbreviation": "02_mod",
                 "defaultTasks": [
                     "ModL",
                     "ModH",
@@ -37,7 +37,7 @@
                 "name": "Modeling"
             },
             {
-                "abbreviation": "surf",
+                "abbreviation": "03_surf",
                 "defaultTasks": [
                     "Texturing",
                     "Shading"
@@ -45,7 +45,7 @@
                 "name": "Surfacing"
             },
             {
-                "abbreviation": "rig",
+                "abbreviation": "04_rig",
                 "defaultTasks": [
                     "RigL",
                     "RigH"
@@ -53,14 +53,14 @@
                 "name": "Rigging"
             },
             {
-                "abbreviation": "cpt",
+                "abbreviation": "01_cpt",
                 "defaultTasks": [
                     "Concept"
                 ],
                 "name": "Concept"
             },
             {
-                "abbreviation": "grm",
+                "abbreviation": "05_grm",
                 "defaultTasks": [
                     "Groom"
                 ],
@@ -191,6 +191,12 @@
                             "RigL",
                             "RigH"
                         ]
+                    },
+                    {
+                        "name": "Groom",
+                        "tasks": [
+                            "Groom"
+                        ]
                     }
                 ],
                 "name": "Char"
@@ -304,13 +310,13 @@
                     {
                         "name": "FX",
                         "tasks": [
-                            "FX"
+                            "Effects"
                         ]
                     },
                     {
                         "name": "CharFX",
                         "tasks": [
-                            "CFX"
+                            "CharacterEffects"
                         ]
                     },
                     {
@@ -427,7 +433,15 @@
                 ],
                 "name": "Minimal (lgt,cmp)"
             }
-        ]
+        ],
+        "resolutionPresets": [
+            "3840x2160",
+            "1920x1080",
+            "1280x720",
+            "960x540",
+            "640x360"
+        ],
+        "defaultMayaNamespace": "{entity}_{task}"
     },
     "folder_structure": {
         "pipeline": {
@@ -443,7 +457,7 @@
             "value": "@sequence_path@/@shot@"
         },
         "textures": {
-            "value": "@project_path@/04_Resources/Textures"
+            "value": "@project_path@/03_Production/Assets/@asset_path@/Textures"
         },
         "departments": {
             "value": "@entity_path@/Scenefiles/@department@"
@@ -470,13 +484,13 @@
             "value": "@productversion_path@/@sequence@-@shot@_@product@_@version@@.(frame)@@extension@"
         },
         "3drenders": {
-            "value": "@entity_path@/Renders/3dRender/@identifier@"
+            "value": "@entity_path@/Renders/3dRender/@department@/@identifier@"
         },
         "2drenders": {
-            "value": "@entity_path@/Renders/2dRender/@identifier@"
+            "value": "@entity_path@/Renders/2dRender/@department@/@identifier@"
         },
         "externalMedia": {
-            "value": "@entity_path@/Renders/external/@identifier@"
+            "value": "@entity_path@/Renders/external/@department@/@identifier@"
         },
         "renderVersions": {
             "value": "@render_path@/@version@"
@@ -485,13 +499,13 @@
             "value": "[expression,#  available variables:\n#  \"core\" - PrismCore\n#  \"context\" - dict\n\nif context.get(\"mediaType\") == \"2drenders\":\n\ttemplate = \"@renderversion_path@\"\nelse:\n\ttemplate = \"@renderversion_path@/@aov@\"]"
         },
         "renderFilesAssets": {
-            "value": "[expression,#  available variables:\n#  \"core\" - PrismCore\n#  \"context\" - dict\n\nif context.get(\"mediaType\") == \"2drenders\":\n\ttemplate = \"@aov_path@/@asset@_@identifier@_@version@@.(frame)@@extension@\"\nelse:\n\ttemplate = \"@aov_path@/@asset@_@identifier@_@version@_@aov@@.(frame)@@extension@\"]"
+            "value": "[expression,#  available variables:\n#  \"core\" - PrismCore\n#  \"context\" - dict\n\nif context.get(\"mediaType\") == \"2drenders\":\n\ttemplate = \"@aov_path@/@asset@_@identifier@_@version@@.(frame)@@extension@\"\nelse:\n\ttemplate = \"@renderversion_path@/@asset@_@identifier@_@version@_@aov@@.(frame)@@extension@\"]"
         },
         "renderFilesShots": {
-            "value": "[expression,#  available variables:\n#  \"core\" - PrismCore\n#  \"context\" - dict\n\nif context.get(\"mediaType\") == \"2drenders\":\n\ttemplate = \"@aov_path@/@sequence@-@shot@_@identifier@_@version@@.(frame)@@extension@\"\nelse:\n\ttemplate = \"@aov_path@/@sequence@-@shot@_@identifier@_@version@_@aov@@.(frame)@@extension@\"]"
+            "value": "[expression,#  available variables:\n#  \"core\" - PrismCore\n#  \"context\" - dict\n\nif context.get(\"mediaType\") == \"2drenders\":\n\ttemplate = \"@aov_path@/@sequence@-@shot@_@identifier@_@version@@.(frame)@@extension@\"\nelse:\n\ttemplate = \"@renderversion_path@/@sequence@-@shot@_@identifier@_@version@_@aov@@.(frame)@@extension@\"]"
         },
         "playblasts": {
-            "value": "@entity_path@/Playblasts/@identifier@"
+            "value": "@entity_path@/Playblasts/@department@/@identifier@"
         },
         "playblastVersions": {
             "value": "@playblast_path@/@version@"
@@ -501,6 +515,9 @@
         },
         "playblastFilesShots": {
             "value": "@playblastversion_path@/@sequence@-@shot@_@identifier@_@version@@.(frame)@@extension@"
+        },
+        "houdini_HDAs": {
+            "value": "@project_path@/09_Dev/HDAs"
         }
     },
     "defaultpasses": {
@@ -565,5 +582,8 @@
     "render_paths": {},
     "maya": {
         "setPrefix": ""
+    },
+    "houdini": {
+        "useRelativePaths": false
     }
 }
