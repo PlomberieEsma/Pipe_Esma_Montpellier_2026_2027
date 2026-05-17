@@ -38,8 +38,9 @@ def getSavePath():
         return None
 
 
-def export_usd(file_path, default_prim=""):
-    cmds.mayaUSDExport(
+def export_usd(file_path, default_prim="", **overrides):
+
+    params = dict(
         # -- Output file --------------------------------------------------
         file=file_path,
         append=False,
@@ -48,21 +49,20 @@ def export_usd(file_path, default_prim=""):
         defaultPrim=default_prim,
         rootPrim="",
         rootPrimType="scope",               # scope | xform | ...
-        # parentScope="",                   # deprecated
         # -- Geometry -----------------------------------------------------
-        exportUVs=True,
+        exportUVs=False,
         exportSkels="none",                 # none | auto
         exportSkin="none",                  # none | auto | explicit
         exportBlendShapes=False,
         exportDisplayColor=False,
-        exportColorSets=True,
-        exportComponentTags=True,
+        exportColorSets=False,
+        exportComponentTags=False,
         defaultMeshScheme="catmullClark",   # catmullClark | none | loop | bilinear
         normalizeNurbs=False,
         preserveUVSetNames=False,
         geomSidedness="derived",            # derived | single | double
         referenceObjectMode="none",         # none | default | defaultWithRename
-        # remapUVSetsTo=[["oldUV", "newUV"]],  # rename UV sets on export
+
         # -- Animation ----------------------------------------------------
         frameRange=(cmds.currentTime(q=True), cmds.currentTime(q=True)),
         frameStride=1.0,
@@ -82,14 +82,14 @@ def export_usd(file_path, default_prim=""):
         legacyMaterialScope=False,
         exportRelativeTextures="automatic", # automatic | absolute | relative
         # -- Instances / references ---------------------------------------
-        exportInstances=True,
+        exportInstances=False,
         exportRefsAsInstanceable=False,
-        exportStagesAsRefs=True,
+        exportStagesAsRefs=False,
         hideSourceData=False,
         # -- Visibility / transforms --------------------------------------
-        exportVisibility=True,
-        mergeTransformAndShape=True,
-        includeEmptyTransforms=True,
+        exportVisibility=False,
+        mergeTransformAndShape=False,
+        includeEmptyTransforms=False,
         stripNamespaces=False,
         worldspace=False,
         # -- Cameras / lights ---------------------------------------------
@@ -126,6 +126,9 @@ def export_usd(file_path, default_prim=""):
         ignoreWarnings=False,
         verbose=False,
     )
+
+    params.update(overrides)
+    cmds.usdExport(**params)
 
 if __name__ == "__main__":
     getSavePath()
