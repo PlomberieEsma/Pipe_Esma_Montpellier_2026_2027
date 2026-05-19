@@ -1,0 +1,39 @@
+{
+    "common":{
+        "file": "file_path",
+        "append": false,
+        "defaultUSDFormat": "usda",
+        "defaultPrim": "default_prim",
+        "rootPrim": "",
+        "rootPrimType": "scope",
+        "exportSkels": "none",
+        "exportSkin": "none",
+        "exportBlendShapes": false,
+        "exportDisplayColor": false,
+        "exportColorSets": false,
+        "exportComponentTags": true,
+        "defaultMeshScheme": "catmullClark",
+        "normalizeNurbs": false,
+        "preserveUVSetNames": false,
+        "geomSidedness": "derived",
+        "referenceObjectMode": "none"
+    },
+
+    "preset":{
+        "mod":{
+            "exportUVs": true,
+            "exportAssignedMaterials": false,
+            "exportmaterials": false,
+            "exportInstances": true,
+            "exportVisibility": true,
+            "exportTransformsAndShape": true,
+            "includeEmptyTransforms": true,
+            "stripNamespaces": false,
+            "worldspace": false,
+            "exportStagesAsRefs": true,
+            "upAxis": "y",
+            "unit": "mayaPrefs"
+        }
+    }
+}
+

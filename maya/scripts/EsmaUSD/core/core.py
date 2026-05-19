@@ -1,14 +1,20 @@
 import maya.cmds as cmds
-import os
+import os, json
 import PrismInit
 
 core = PrismInit.pcore if getattr(PrismInit, "pcore", None) else PrismInit.prismInit(prismArgs=["noUI"])
+
+with open(os.path.join(core.scriptPath, "lib", "usdParamsExport.json"), "r") as f:
+    usdExportParams = json.load(f)
+
 
 projectName = core.projectName
 projectPath = core.projectPath
 
 data = core.getCurrentScenefileData()
 entityType = data.get("type", "")
+
+presetExport = []
 
 
 def getSavePath():
@@ -38,97 +44,16 @@ def getSavePath():
         return None
 
 
-def export_usd(file_path, default_prim="", **overrides):
+def export_usd(preset_name,file_path, default_prim=""):
 
-    params = dict(
-        # -- Output file --------------------------------------------------
-        file=file_path,
-        append=False,
-        defaultUSDFormat="usda",            # usdc | usda
-        # -- Root / prim --------------------------------------------------
-        defaultPrim=default_prim,
-        rootPrim="",
-        rootPrimType="scope",               # scope | xform | ...
-        # -- Geometry -----------------------------------------------------
-        exportUVs=False,
-        exportSkels="none",                 # none | auto
-        exportSkin="none",                  # none | auto | explicit
-        exportBlendShapes=False,
-        exportDisplayColor=False,
-        exportColorSets=False,
-        exportComponentTags=False,
-        defaultMeshScheme="catmullClark",   # catmullClark | none | loop | bilinear
-        normalizeNurbs=False,
-        preserveUVSetNames=False,
-        geomSidedness="derived",            # derived | single | double
-        referenceObjectMode="none",         # none | default | defaultWithRename
+    config = dict(usdExportParams["common"])
 
-        # -- Animation ----------------------------------------------------
-        frameRange=(cmds.currentTime(q=True), cmds.currentTime(q=True)),
-        frameStride=1.0,
-        frameSample=[0.0],
-        animationType="timesamples",        # timesamples | curves | curvesAndSamples
-        eulerFilter=False,
-        staticSingleSample=False,
-        # -- Materials ----------------------------------------------------
-        exportMaterials=False,
-        exportAssignedMaterials=False,
-        shadingMode="useRegistry",          # useRegistry | displayColor | none
-        convertMaterialsTo=["UsdPreviewSurface"],
-        exportMaterialCollections=False,
-        exportCollectionBasedBindings=False,
-        materialCollectionsPath="",
-        materialsScopeName="Looks",
-        legacyMaterialScope=False,
-        exportRelativeTextures="automatic", # automatic | absolute | relative
-        # -- Instances / references ---------------------------------------
-        exportInstances=False,
-        exportRefsAsInstanceable=False,
-        exportStagesAsRefs=False,
-        hideSourceData=False,
-        # -- Visibility / transforms --------------------------------------
-        exportVisibility=False,
-        mergeTransformAndShape=False,
-        includeEmptyTransforms=False,
-        stripNamespaces=False,
-        worldspace=False,
-        # -- Cameras / lights ---------------------------------------------
-        defaultCameras=False,
-        # -- Selection / filtering ----------------------------------------
-        selection=False,
-        renderableOnly=False,
-        # filterTypes=["typeName"],         # exclude Maya node types
-        # exportRoots=["|path|to|root"],    # export specific DAG subtrees
-        renderLayerMode="defaultLayer",     # defaultLayer | currentLayer | modelingVariant
-        # -- Kinds --------------------------------------------------------
-        kind="",                            # component | assembly | group | subcomponent
-        disableModelKindProcessor=False,
-        # -- Units / axis -------------------------------------------------
-        upAxis="mayaPrefs",                 # mayaPrefs | y | z
-        unit="mayaPrefs",
-        metersPerUnit=0.0,
-        exportDistanceUnit=False,
-        # -- Schemas / chasers / job contexts -----------------------------
-        # apiSchema=["MyAPI"],              # extra API schemas to apply
-        # jobContext=["Arnold"],            # render-delegate job contexts
-        # chaser=["myChaser"],              # export chasers
-        # chaserArgs=[["chaser","key","value"]],
-        compatibility="",                   # appleArKit | ...
-        # -- Metadata -----------------------------------------------------
-        # customLayerData=[["key","string","value"]],
-        writeDefaults=False,
-        # -- Callbacks ----------------------------------------------------
-        melPerFrameCallback="",
-        melPostCallback="",
-        pythonPerFrameCallback="",
-        pythonPostCallback="",
-        # -- Misc ---------------------------------------------------------
-        ignoreWarnings=False,
-        verbose=False,
-    )
-
-    params.update(overrides)
-    cmds.usdExport(**params)
+    if preset_name in usdExportParams["presets"]:
+        config.update(usdExportParams["presets"][preset_name])
+    else:
+        raise ValueError(f"Preset inconnu : {preset_name}")
+    
+    cmds.usdExport(**config)
 
 if __name__ == "__main__":
     getSavePath()
