@@ -2,9 +2,11 @@ import maya.cmds as cmds
 import os, json
 import PrismInit
 
+
 core = PrismInit.pcore if getattr(PrismInit, "pcore", None) else PrismInit.prismInit(prismArgs=["noUI"])
 
-with open(os.path.join(core.scriptPath, "lib", "usdParamsExport.json"), "r") as f:
+_pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_pkg_root, "lib", "usdParamsExport.json"), "r") as f:
     usdExportParams = json.load(f)
 
 
@@ -32,11 +34,14 @@ def getSavePath():
     elif entityType == "shot":
         sequence = data.get("sequence", "")
         shot = data.get("shot", "")
+        assetDepartment = data.get("department", "")
         fullShotPath = os.path.join(core.shotPath, sequence, shot)
+        fullShotPath = fullShotPath.replace("@", "_")
         print(f"Project  : {projectName}")
         print(f"Shot     : {sequence}_{shot}")
         print(f"Path     : {fullShotPath}")
-        return {"type": "shot", "sequence": sequence, "shot": shot, "path": fullShotPath}
+        print(f"Department: {assetDepartment}")
+        return {"type": "shot", "sequence": sequence, "shot": shot, "path": fullShotPath, "department": assetDepartment}
 
     else:
         print(f"Project : {projectName}")
@@ -44,7 +49,7 @@ def getSavePath():
         return None
 
 
-def export_usd(preset_name,file_path, default_prim=""):
+def export_usd(preset_name, file_path, default_prim=""):
 
     config = dict(usdExportParams["common"])
 
@@ -53,7 +58,10 @@ def export_usd(preset_name,file_path, default_prim=""):
     else:
         raise ValueError(f"Preset inconnu : {preset_name}")
     
-    cmds.usdExport(**config)
+    config["file"] = file_path
+    config["defaultPrim"] = default_prim
+    
+    cmds.mayaUSDExport(**config)
 
 if __name__ == "__main__":
     getSavePath()

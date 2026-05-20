@@ -1,9 +1,7 @@
 {
-    "common":{
-        "file": "file_path",
+    "common": {
         "append": false,
         "defaultUSDFormat": "usda",
-        "defaultPrim": "default_prim",
         "rootPrim": "",
         "rootPrimType": "scope",
         "exportSkels": "none",
@@ -16,24 +14,35 @@
         "normalizeNurbs": false,
         "preserveUVSetNames": false,
         "geomSidedness": "derived",
-        "referenceObjectMode": "none"
+        "referenceObjectMode": "none",
+        "exportUVs": true,
+        "exportAssignedMaterials": false,
+        "exportMaterials": false,
+        "upAxis": "y"
     },
 
-    "preset":{
-        "mod":{
-            "exportUVs": true,
-            "exportAssignedMaterials": false,
-            "exportmaterials": false,
+    "presets": {
+        "mod": {
+
             "exportInstances": true,
             "exportVisibility": true,
-            "exportTransformsAndShape": true,
+            "mergeTransformAndShape": true,
             "includeEmptyTransforms": true,
             "stripNamespaces": false,
             "worldspace": false,
-            "exportStagesAsRefs": true,
-            "upAxis": "y",
-            "unit": "mayaPrefs"
+            "exportStagesAsRefs": true
+
+        },
+
+        "lay":{
+            "exportInstances": true,
+            "exportVisibility": true,
+            "mergeTransformAndShape": true,
+            "includeEmptyTransforms": true,
+            "stripNamespaces": false,
+            "worldspace": false,
+            "exportStagesAsRefs": true
         }
+
     }
 }
-
