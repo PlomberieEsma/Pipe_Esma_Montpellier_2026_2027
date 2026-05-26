@@ -1,17 +1,14 @@
 from datetime import datetime
-import json
-import os, shutil
+import json, os, shutil, importlib, EsmaUSD.core.core
 from maya import cmds
-import importlib
-import EsmaUSD.core.core
 importlib.reload(EsmaUSD.core.core)
-
-if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
-    cmds.loadPlugin("mayaUsdPlugin")
 
 from EsmaUSD.core.core import getSavePath, export_usd
 
 import PrismInit
+
+if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
+    cmds.loadPlugin("mayaUsdPlugin")
 
 core = PrismInit.pcore if getattr(PrismInit, "pcore", None) else PrismInit.prismInit(prismArgs=["noUI"])
 
