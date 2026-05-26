@@ -24,24 +24,37 @@ def getSavePath():
         assetName = data.get("asset", "")
         assetRelPath = data.get("asset_path", "")
         assetDepartment = data.get("department", "")
+        assetTask = data.get("task", "")
         fullAssetPath = os.path.join(core.assetPath, assetRelPath)
+        projectName = core.projectName
+        userName = core.users.getUser()
+
         print(f"Project : {projectName}")
         print(f"Asset   : {assetName}")
         print(f"Path    : {fullAssetPath}")
         print(f"Department: {assetDepartment}")
-        return {"type": "asset", "name": assetName, "path": fullAssetPath, "department": assetDepartment}
+        print(f"Task    : {assetTask}")
+        print(f"project    : {projectName}")
+        print(f"Current user: {userName}")
+        return {"type": "asset", "name": assetName, "path": fullAssetPath, "department": assetDepartment, "task": assetTask, "project": projectName, "user": userName}
 
     elif entityType == "shot":
         sequence = data.get("sequence", "")
         shot = data.get("shot", "")
-        assetDepartment = data.get("department", "")
+        shotDepartment = data.get("department", "")
+        shotTask = data.get("task", "")
         fullShotPath = os.path.join(core.shotPath, sequence, shot)
         fullShotPath = fullShotPath.replace("@", "_")
+        projectName = core.projectName
+        userName = core.users.getUser()
         print(f"Project  : {projectName}")
         print(f"Shot     : {sequence}_{shot}")
         print(f"Path     : {fullShotPath}")
-        print(f"Department: {assetDepartment}")
-        return {"type": "shot", "sequence": sequence, "shot": shot, "path": fullShotPath, "department": assetDepartment}
+        print(f"Department: {shotDepartment}")
+        print(f"Task    : {shotTask}")
+        print(f"project    : {projectName}")
+        print(f"Current user: {userName}")
+        return {"type": "shot", "sequence": sequence, "shot": shot, "path": fullShotPath, "department": shotDepartment, "task": shotTask, "project": projectName, "user": userName}
 
     else:
         print(f"Project : {projectName}")

@@ -1,3 +1,5 @@
+from datetime import datetime
+import json
 import os, shutil
 from maya import cmds
 import importlib
@@ -12,6 +14,7 @@ from EsmaUSD.core.core import getSavePath, export_usd
 import PrismInit
 
 core = PrismInit.pcore if getattr(PrismInit, "pcore", None) else PrismInit.prismInit(prismArgs=["noUI"])
+
 
 def saveScene():
     saveData = getSavePath()
@@ -36,12 +39,18 @@ def saveScene():
         export_usd("mod", usda_path, default_prim=asset_name)
         print(f"USD exported: {usda_path}")
 
-        master_dir = os.path.join(saveData["path"], "Export", saveData["department"], "master")
+        master_dir = os.path.join(saveData["path"], "Export", f"layer_{saveData['department']}", "master")
         os.makedirs(master_dir, exist_ok=True)
         master_path = os.path.join(master_dir, f"{asset_name}_master.usda")
         shutil.copy2(usda_path, master_path)
 
-        
+        # Version metadata
+        json_version = usda_path.replace(".usda", "_metadata.json")
+        write_metadata(json_version, version, saveData)
+
+        # Master metadata
+        json_master = master_path.replace(".usda", "_metadata.json")
+        write_metadata(json_master, "master", saveData)       
 
     elif saveData["type"] == "shot" and saveData["department"] != "lay":
         shot_name = f"{saveData['sequence']}_{saveData['shot']}"
@@ -58,10 +67,26 @@ def saveScene():
         export_usd("shot", usda_path, default_prim=shot_name)
         print(f"USD exported: {usda_path}")
 
-        master_dir = os.path.join(saveData["path"], "Export", saveData["department"], "master")
+        master_dir = os.path.join(saveData["path"], "Export", f"layer_{saveData['department']}", "master")
         os.makedirs(master_dir, exist_ok=True)
         master_path = os.path.join(master_dir, f"{shot_name}_master.usda")
         shutil.copy2(usda_path, master_path)
 
+def write_metadata(json_path, version, saveData):
+    metadata = {
+        "version": version,
+        "author": saveData["user"],
+        "comment": "",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "department": saveData["department"],
+        "task": saveData["task"],
+        "path": saveData["path"],
+        "project": saveData["project"],
+        "project_path": core.projectPath,
+        "source_scene": cmds.file(q=True, sn=True),
+    }
+    with open(json_path, "w") as f:
+        json.dump(metadata, f, indent=4)
+    print(f"Metadata saved: {json_path}")
+
 saveScene()
-getSavePath()
