@@ -1,80 +1,104 @@
-import maya.cmds as cmds
-import os, json
+from datetime import datetime
+import json, os, shutil, importlib, EsmaUSD.core.core
+from maya import cmds
+importlib.reload(EsmaUSD.core.core)
+
+from EsmaUSD.core.core import getSavePath, export_usd
+
 import PrismInit
 
+if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
+    cmds.loadPlugin("mayaUsdPlugin")
 
 core = PrismInit.pcore if getattr(PrismInit, "pcore", None) else PrismInit.prismInit(prismArgs=["noUI"])
 
-_pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(_pkg_root, "lib", "usdParamsExport.json"), "r") as f:
-    usdExportParams = json.load(f)
+
+def saveScene():
+    saveData = getSavePath()
+    if saveData is None:
+        return
+
+    if saveData["type"] == "asset" and saveData["department"] == "02_mod":
+
+        asset_name = saveData["name"]
+
+        version = 1
+        while True:
+            version_dir = os.path.join(saveData["path"], "Export", f"{saveData['department']}", f"{saveData['task']}", f"v{version:04d}")
+            if not os.path.exists(version_dir):
+                break
+            version += 1
+
+        os.makedirs(version_dir, exist_ok=True)
+
+        usda_path = os.path.join(version_dir, f"{asset_name}_v{version:04d}.usda")
+
+        export_usd("mod", usda_path, default_prim=asset_name)
+        print(f"USD exported: {usda_path}")
+
+        master_dir = os.path.join(saveData["path"], "Export", f"{saveData['department']}", f"{saveData['task']}", "master")
+        os.makedirs(master_dir, exist_ok=True)
+        master_path = os.path.join(master_dir, f"{asset_name}_master.usda")
+        shutil.copy2(usda_path, master_path)
+
+        # Version metadata
+        json_version = usda_path.replace(".usda", "_metadata.json")
+        write_metadata(json_version, version, saveData)
+
+        # Master metadata
+        json_master = master_path.replace(".usda", "_metadata.json")
+        write_metadata(json_master, "master", saveData)       
+
+    elif saveData["type"] == "shot" and saveData["department"] != "03_anim":
+        shot_name = f"{saveData['sequence']}_{saveData['shot']}"
+        version = 1
+        while True:
+            version_dir = os.path.join(saveData["path"], "Export", f"{saveData['department']}", f"{saveData['task']}", f"v{version:04d}")
+            if not os.path.exists(version_dir):
+                break
+            version += 1
+
+            
+
+        os.makedirs(version_dir, exist_ok=True)
+
+        usda_path = os.path.join(version_dir, f"{shot_name}_v{version:04d}.usda")
+        export_usd("shot", usda_path, default_prim=shot_name)
+        print(f"USD exported: {usda_path}")
+
+        master_dir = os.path.join(saveData["path"], "Export", f"{saveData['department']}", f"{saveData['task']}", "master")
+        os.makedirs(master_dir, exist_ok=True)
+        master_path = os.path.join(master_dir, f"{shot_name}_master.usda")
+        shutil.copy2(usda_path, master_path)
+
+def write_metadata(json_path, version, saveData):
+    metadata = {
+        "version": version,
+        "author": saveData["user"],
+        "comment": "",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "department": saveData["department"],
+        "task": saveData["task"],
+        "path": saveData["path"],
+        "project": saveData["project"],
+        "project_path": core.projectPath,
+        "source_scene": cmds.file(q=True, sn=True),
+    }
+    with open(json_path, "w") as f:
+        json.dump(metadata, f, indent=4)
+    print(f"Metadata saved: {json_path}")
+
+saveScene()
 
 
-projectName = core.projectName
-projectPath = core.projectPath
+import os
 
-data = core.getCurrentScenefileData()
-entityType = data.get("type", "")
-
-presetExport = []
-
-
-def getSavePath():
-    if entityType == "asset":
-        assetName = data.get("asset", "")
-        assetRelPath = data.get("asset_path", "")
-        assetDepartment = data.get("department", "")
-        assetTask = data.get("task", "")
-        fullAssetPath = os.path.join(core.assetPath, assetRelPath)
-        projectName = core.projectName
-        userName = core.users.getUser()
-
-        print(f"Project : {projectName}")
-        print(f"Asset   : {assetName}")
-        print(f"Path    : {fullAssetPath}")
-        print(f"Department: {assetDepartment}")
-        print(f"Task    : {assetTask}")
-        print(f"project    : {projectName}")
-        print(f"Current user: {userName}")
-        return {"type": "asset", "name": assetName, "path": fullAssetPath, "department": assetDepartment, "task": assetTask, "project": projectName, "user": userName}
-
-    elif entityType == "shot":
-        sequence = data.get("sequence", "")
-        shot = data.get("shot", "")
-        shotDepartment = data.get("department", "")
-        shotTask = data.get("task", "")
-        fullShotPath = os.path.join(core.shotPath, sequence, shot)
-        fullShotPath = fullShotPath.replace("@", "_")
-        projectName = core.projectName
-        userName = core.users.getUser()
-        print(f"Project  : {projectName}")
-        print(f"Shot     : {sequence}_{shot}")
-        print(f"Path     : {fullShotPath}")
-        print(f"Department: {shotDepartment}")
-        print(f"Task    : {shotTask}")
-        print(f"project    : {projectName}")
-        print(f"Current user: {userName}")
-        return {"type": "shot", "sequence": sequence, "shot": shot, "path": fullShotPath, "department": shotDepartment, "task": shotTask, "project": projectName, "user": userName}
-
-    else:
-        print(f"Project : {projectName}")
-        print("Scene is not saved inside a Prism entity.")
-        return None
-
-
-def export_usd(preset_name, file_path, default_prim=""):
-
-    config = dict(usdExportParams["common"])
-
-    if preset_name in usdExportParams["presets"]:
-        config.update(usdExportParams["presets"][preset_name])
-    else:
-        raise ValueError(f"Preset inconnu : {preset_name}")
-    
-    config["file"] = file_path
-    config["defaultPrim"] = default_prim
-    
-    cmds.mayaUSDExport(**config)
-
-if __name__ == "__main__":
-    getSavePath()
+def main(*args, **kwargs):
+    origin = args[0]
+    entity = args[1]
+    additional_shot_folders = ["audio", "plates", "client_data"]
+    shot_path = origin.core.getEntityPath(entity=entity)
+    for folder in additional_shot_folders:
+        folderpath = shot_path + "/" + folder
+        os.makedirs(folderpath)
+        print("created folder " + folderpath)
