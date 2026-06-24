@@ -21,6 +21,14 @@ def export_usd():
 
     path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version=None, location="global")
 
+    if etype == "asset" and dept == "mod":
+        write_usd("mod", path, default_prim=info["name"])
+    else:
+        return
+    
+    if etype == "shot":
+        return
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
     print(f"USD exported: {path}")
 
@@ -40,12 +48,6 @@ def export_usd():
 
     core.products.updateMasterVersion(path)
     
-    if etype == "asset" and dept == "mod":
-        write_usd("mod", path, default_prim=info["name"])
-    else:
-        return
-    
-    if etype == "shot":
-        return
+
 
 export_usd()
