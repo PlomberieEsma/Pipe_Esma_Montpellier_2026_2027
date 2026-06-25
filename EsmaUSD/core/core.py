@@ -15,7 +15,19 @@ def get_core():
     return core
 
 
-def write_usd(preset_name, file_path, default_prim=""):
+def create_selection_set(selectedobj, set_name):
+
+    import maya.cmds as cmds
+
+    if cmds.objExists(set_name) and cmds.nodeType(set_name) == "objectSet":
+        cmds.delete(set_name)
+
+    set_name = cmds.sets(selectedobj, name=set_name)
+
+    return set_name
+
+
+def write_usd(preset_name, file_path, default_prim="", selection_only=True, set_name=None):
     dcc = get_dcc()
 
     if dcc == "maya":
@@ -30,9 +42,19 @@ def write_usd(preset_name, file_path, default_prim=""):
             config.update(usdExportParams["presets"][preset_name])
         else:
             raise ValueError(f"Preset inconnu : {preset_name}")
-        
+
         config["file"] = file_path
         config["defaultPrim"] = default_prim
-        
-        cmds.mayaUSDExport(**config)
 
+        if selection_only:
+            selection = cmds.ls(selection=True, long=True)
+            if not selection:
+                raise RuntimeError(
+                    "Aucune géométrie sélectionnée : sélectionne les nœuds à "
+                    "exporter avant de lancer l'export USD."
+                )
+            config["selection"] = True
+
+            create_selection_set(selection, default_prim + "_geo")
+
+        cmds.mayaUSDExport(**config)

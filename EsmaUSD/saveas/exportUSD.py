@@ -1,6 +1,8 @@
-import os
+import os, importlib
 from EsmaUSD.core.get_entity_info import get_entity_info
 from EsmaUSD.core.core import get_core, write_usd
+import EsmaUSD.core.core
+importlib.reload(EsmaUSD.core.core)
 
 core = get_core()
 
@@ -16,13 +18,13 @@ def export_usd():
     task = info["task"]
 
     if not task:
-        core.popup("Aucune task assignée à cette scène : impossible d'exporter l'asset/shot en USD.", title="Export USD", icon="warning")
+        core.popup("Aucune task assignée à cette scène : impossible d'exporter l'asset/shot en USD.", title="Export USD", severity="error")
         return
 
     path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version=None, location="global")
 
     if etype == "asset" and dept == "mod":
-        write_usd("mod", path, default_prim=info["name"])
+        write_usd("mod", path, default_prim=info["name"], selection_only=True)
     else:
         return
     

@@ -65,6 +65,16 @@ class AssetSetupWindow(QtWidgets.QDialog):
     def create_connections(self):
         pass
 
+    def show_file_select_dialog(self):
+        print("TODO: show_file_select_dialog()")
+
+    def set_force_cb_visible(self, checked):
+        self.force_cb.setVisible(checked)
+
+    def load_file(self):
+        print("TODO: load_file()")
+
+
 if __name__ == "__main__":
     
     try:
