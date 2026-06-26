@@ -1,6 +1,20 @@
 from EsmaUSD.core.core import get_core
 
 def get_entity_info():
+    
+    # Get information about the prism entity we are working on.
+    # Ex:
+    #   Type = Asset or Shot
+    #   Entity = What we are working on (Ours ou Sq10_Sh10)
+    # 
+    # 
+    # 
+    # 
+    # 
+    # 
+    # 
+    # cc
+    
 
     core = get_core()
     data = core.getCurrentScenefileData()
