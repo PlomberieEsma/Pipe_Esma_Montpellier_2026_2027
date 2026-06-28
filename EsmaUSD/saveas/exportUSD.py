@@ -1,6 +1,6 @@
 import os, importlib
 from EsmaUSD.core.get_entity_info import get_entity_info
-from EsmaUSD.core.core import get_core, write_usd
+from EsmaUSD.core.core import get_core, write_usd, create_master
 import EsmaUSD.core.core
 importlib.reload(EsmaUSD.core.core)
 
@@ -22,9 +22,13 @@ def export_usd():
         return
 
     path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version=None, location="global")
+    master_Path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version="master", location="global")
 
     if etype == "asset" and dept == "mod":
         write_usd("mod", path, default_prim=info["name"], selection_only=True)
+        create_master(path, master_Path, default_prim=info["name"])
+
+
     else:
         return
     
@@ -47,9 +51,8 @@ def export_usd():
 
     info_path = core.products.getVersionInfoPathFromProductFilepath(path)
     core.saveVersionInfo(filepath=info_path, details=details)
-
-    core.products.updateMasterVersion(path)
     
-
+    master_info_path = core.products.getVersionInfoPathFromProductFilepath(master_Path)
+    core.saveVersionInfo(filepath=master_info_path, details=details)
 
 export_usd()

@@ -31,10 +31,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Prism.  If not, see <https://www.gnu.org/licenses/>.
 
-
 from Prism_EsmaUSD_Variables import Prism_EsmaUSD_Variables
 from Prism_EsmaUSD_Functions import Prism_EsmaUSD_Functions
-
 
 class Prism_EsmaUSD(Prism_EsmaUSD_Variables, Prism_EsmaUSD_Functions):
     def __init__(self, core):

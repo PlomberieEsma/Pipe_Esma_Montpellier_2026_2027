@@ -21,6 +21,7 @@ def get_entity_info():
     entityType = data.get("type", "")
 
     if entityType not in ("asset", "shot"):
+        core.popup("La scène n'est pas dans une entité Prism.", title="Export USD", severity="error")
         print("La scène n'est pas dans une entité Prism.")
         return None
 

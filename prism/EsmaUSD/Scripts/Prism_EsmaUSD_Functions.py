@@ -32,12 +32,13 @@
 # along with Prism.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
+
 from qtpy.QtCore import *
 from qtpy.QtGui import *
 from qtpy.QtWidgets import *
 
 from PrismUtils.Decorators import err_catcher_plugin as err_catcher
-
 
 class Prism_EsmaUSD_Functions(object):
     def __init__(self, core, plugin):
@@ -48,3 +49,4 @@ class Prism_EsmaUSD_Functions(object):
     @err_catcher(name=__name__)
     def isActive(self):
         return True
+

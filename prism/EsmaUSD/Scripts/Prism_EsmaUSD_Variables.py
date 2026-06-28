@@ -41,4 +41,5 @@ class Prism_EsmaUSD_Variables(object):
         self.pluginName = "EsmaUSD"
         self.pluginType = "Custom"
         self.platforms = ["Windows"]
+        self.extensions = [".usd", ".usda", ".usdc", ".usdnc", ".abc", ".bgeosc", ".usdz"]
         self.pluginDirectory = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
