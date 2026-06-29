@@ -3,6 +3,9 @@ import EsmaUSD.core.dcc.launcher as launcher_mod
 importlib.reload(launcher_mod)
 
 from EsmaUSD.core.dcc.launcher import get_qt, get_main_window
+from EsmaUSD.core.core import get_core
+
+core = get_core()
 
 QtWidgets, QtCore, QtGui = get_qt()
 
@@ -73,6 +76,9 @@ class AssetSetupWindow(QtWidgets.QDialog):
 
     def load_file(self):
         print("TODO: load_file()")
+        
+    def get_all_dept():
+        print("TODO: get_all_dept()")
 
 
 if __name__ == "__main__":
