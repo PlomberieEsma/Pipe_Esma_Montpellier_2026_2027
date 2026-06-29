@@ -9,7 +9,7 @@ def setup_geo(default_prim=""):
     if info is None:
         return
 
-    entity = info["entity"]          # dict Prism attendu par generateProductPath
+    entity = info["entity"]
     etype = entity["type"]
     dept = info["department"]
     task = info["task"]
