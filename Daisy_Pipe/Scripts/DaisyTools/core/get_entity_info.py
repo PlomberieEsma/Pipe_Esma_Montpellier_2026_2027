@@ -1,4 +1,4 @@
-from EsmaUSD.core.core import get_core
+from Scripts.DaisyTools.core.core import get_core
 
 def get_entity_info():
     

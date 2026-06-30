@@ -1,10 +1,9 @@
 from pxr.UsdUtils import fixBrokenPixarSchemas
-from EsmaUSD.setupAsset import maya
-from EsmaUSD.setupAsset import maya
-from pxr import UsdSemantics
-from EsmaUSD import core
-from EsmaUSD.core.dcc.launcher import get_dcc
-from EsmaUSD.setupAsset.maya.setup_geo import setup_geo, geo_is_complete
+from Scripts.DaisyTools.setupAsset import maya
+from Scripts.DaisyTools.setupAsset import maya
+from Scripts.DaisyTools import core
+from Scripts.DaisyTools.core.dcc.launcher import get_dcc
+from Scripts.DaisyTools.setupAsset.maya.setup_geo import setup_geo, geo_is_complete
 import json, os
 
 #path to the export usd parameters which are stocked in a json file
@@ -26,7 +25,7 @@ def get_core():
         return None
     return core
 
-    #To use it import the fonction in other modules using "from EsmaUSD.core.core import get_core" then execute with "core = get_core()"
+    #To use it import the fonction in other modules using "from Daisy_Pipe.Scripts.DaisyTools.core.core import get_core" then execute with "core = get_core()"
     #You can then use core.exampleOfPrismFonction to call prism fonction
 
 

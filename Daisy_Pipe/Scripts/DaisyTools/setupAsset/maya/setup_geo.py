@@ -1,7 +1,7 @@
 def setup_geo(default_prim=""):
     # pyrefly: ignore [missing-import]
     import maya.cmds as cmds
-    from EsmaUSD.core.get_entity_info import get_entity_info
+    from Scripts.DaisyTools.core.get_entity_info import get_entity_info
     
     cmds.select(cl=True)
     
@@ -17,7 +17,7 @@ def setup_geo(default_prim=""):
     master_name = default_prim
     geo_name = "geo"
 
-    if etype == "asset" and dept == "mod": 
+    if etype == "asset" and dept == "02_mod": 
         #Find or create master group
         if cmds.objExists(master_name):
             master_grp = cmds.ls(master_name, long=True)[0]

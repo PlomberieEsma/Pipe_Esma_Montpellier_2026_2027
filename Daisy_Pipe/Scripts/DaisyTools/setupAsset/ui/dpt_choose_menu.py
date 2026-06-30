@@ -1,9 +1,9 @@
 import importlib, sys
-import EsmaUSD.core.dcc.launcher as launcher_mod
+import Scripts.DaisyTools.core.dcc.launcher as launcher_mod
 importlib.reload(launcher_mod)
 
-from EsmaUSD.core.dcc.launcher import get_qt, get_main_window
-from EsmaUSD.core.core import get_core
+from Scripts.DaisyTools.core.dcc.launcher import get_qt, get_main_window
+from Scripts.DaisyTools.core.core import get_core
 
 core = get_core()
 
