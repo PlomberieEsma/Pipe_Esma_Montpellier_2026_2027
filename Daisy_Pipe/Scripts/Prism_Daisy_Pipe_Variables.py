@@ -35,11 +35,20 @@
 import os
 
 
-class Prism_EsmaUSD_Variables(object):
+class Prism_Daisy_Pipe_Variables(object):
     def __init__(self, core, plugin):
         self.version = "v2.0.0"
-        self.pluginName = "EsmaUSD"
-        self.pluginType = "Custom"
+        self.pluginName = "Daisy_Pipe"
+        self.pluginType = "App"
+        self.appShortName = "Daisy_Pipe"
+        self.appType = "3d"
+        self.hasQtParent = True
+        self.sceneFormats = [".format"]
+        self.appSpecificFormats = self.sceneFormats
+        self.outputFormats = [".abc", ".obj", ".fbx", "ShotCam", ".usd", ".usda", ".usdc", ".usdnc", ".abc", ".bgeosc", ".usdz"]
+        self.appColor = [255, 255, 255]
+        self.renderPasses = []
         self.platforms = ["Windows"]
-        self.extensions = [".usd", ".usda", ".usdc", ".usdnc", ".abc", ".bgeosc", ".usdz"]
-        self.pluginDirectory = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+        self.pluginDirectory = os.path.abspath(
+            os.path.dirname(os.path.dirname(__file__))
+        )

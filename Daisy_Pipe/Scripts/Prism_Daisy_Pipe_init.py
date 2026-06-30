@@ -31,10 +31,23 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Prism.  If not, see <https://www.gnu.org/licenses/>.
 
-from Prism_EsmaUSD_Variables import Prism_EsmaUSD_Variables
-from Prism_EsmaUSD_Functions import Prism_EsmaUSD_Functions
 
-class Prism_EsmaUSD(Prism_EsmaUSD_Variables, Prism_EsmaUSD_Functions):
+from Prism_Daisy_Pipe_Variables import Prism_Daisy_Pipe_Variables
+from Prism_Daisy_Pipe_externalAccess_Functions import (
+    Prism_Daisy_Pipe_externalAccess_Functions,
+)
+from Prism_Daisy_Pipe_Functions import Prism_Daisy_Pipe_Functions
+from Prism_Daisy_Pipe_Integration import Prism_Daisy_Pipe_Integration
+
+
+class Prism_Plugin_Daisy_Pipe(
+    Prism_Daisy_Pipe_Variables,
+    Prism_Daisy_Pipe_externalAccess_Functions,
+    Prism_Daisy_Pipe_Functions,
+    Prism_Daisy_Pipe_Integration,
+):
     def __init__(self, core):
-        Prism_EsmaUSD_Variables.__init__(self, core, self)
-        Prism_EsmaUSD_Functions.__init__(self, core, self)
+        Prism_Daisy_Pipe_Variables.__init__(self, core, self)
+        Prism_Daisy_Pipe_externalAccess_Functions.__init__(self, core, self)
+        Prism_Daisy_Pipe_Functions.__init__(self, core, self)
+        Prism_Daisy_Pipe_Integration.__init__(self, core, self)
