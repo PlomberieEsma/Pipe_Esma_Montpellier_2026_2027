@@ -411,7 +411,7 @@ emplacements devient un **atout**, pas un obstacle.
 
 ---
 
-## 8. Règles à garder en tête (rappel du CLAUDE.md du projet)
+## 9. Règles à garder en tête (rappel du CLAUDE.md du projet)
 
 - **Plugin Prism** : `qtpy`, `err_catcher`, callbacks > API directe > monkeyPatch.
   Ne jamais éditer les scripts de Prism eux-mêmes.
