@@ -1,8 +1,8 @@
 import os, importlib
-from EsmaUSD.core.get_entity_info import get_entity_info
-from EsmaUSD.core.core import get_core, write_usd, create_master
-import EsmaUSD.core.core
-importlib.reload(EsmaUSD.core.core)
+from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+from Scripts.DaisyTools.core.core import get_core, write_usd, create_master
+import Scripts.DaisyTools.core.core
+importlib.reload(Scripts.DaisyTools.core.core)
 
 core = get_core()
 
