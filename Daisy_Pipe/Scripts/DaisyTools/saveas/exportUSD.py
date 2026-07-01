@@ -27,6 +27,10 @@ def export_usd():
     if etype == "asset" and dept == "02_mod":
         write_usd("mod", path, default_prim=info["name"], selection_only=True)
         create_master(path, master_Path, default_prim=info["name"])
+
+        if "ModH_var" in task:
+            return
+
     else:
         return
     

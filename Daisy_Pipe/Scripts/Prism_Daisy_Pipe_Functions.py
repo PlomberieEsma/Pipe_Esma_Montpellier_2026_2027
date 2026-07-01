@@ -1,4 +1,5 @@
-
+name = "CustomExportSettings"
+classname = "CustomExportSettings"
 
 from qtpy.QtCore import *
 from qtpy.QtGui import *
@@ -90,7 +91,7 @@ class Prism_Daisy_Pipe_Functions(object):
         #self.core.popup("Create variant for task: %s" % taskName)
 
         #Check existing tasks and determine the right name
-        if f"{taskName}_02" not in existingTasks:
+        if f"{taskName}_var02" not in existingTasks:
             varTaskName = f"{taskName}_02"
         else:
             varTaskName = None
@@ -104,18 +105,19 @@ class Prism_Daisy_Pipe_Functions(object):
                 self.core.popup("Impossible de trouver un nom de variante disponible pour %s" % taskName)
                 return
         
+
         path = self.core.entities.createCategory(entity, department, varTaskName)
         if not path:
             return
         origin.refreshTasks()
-        self.core.popup("Variant créée: %s" % varTaskName)
+
         return path
 
     # if returns true, the plugin will be loaded by Prism
     @err_catcher(name=__name__)
     def isActive(self):
         return True
-
+    
     def importUsdPackages(self):
 
         try:
@@ -143,11 +145,18 @@ class Prism_Daisy_Pipe_Functions(object):
             return
         
     def onStateStartup(self, state):
-        if state.className == "Export":
-            if self.isMaya():
+        # this function is used to create the GUI widgets every time a state gets created
 
+        # only for export states
+        if state.className == "Export":
+
+            # create the "Setting1" widgets only in Houdini
+            if self.core.appPlugin.pluginName == "Houdini":
+
+                # get the layout of the state settings, which the new widgets will be added to
                 lo = state.gb_general.layout()
-                
+
+                # create a widget with a label and a checkbox
                 state.w_setting1 = QWidget()
                 state.lo_setting1 = QHBoxLayout(state.w_setting1)
                 state.lo_setting1.setContentsMargins(9, 0, 9, 0)
@@ -158,19 +167,47 @@ class Prism_Daisy_Pipe_Functions(object):
                 state.lo_setting1.addWidget(state.chb_setting1)
                 lo.addWidget(state.w_setting1)
 
+                # save the state settings when the checkbox gets toggled
                 state.chb_setting1.toggled.connect(lambda s: state.stateManager.saveStatesToScene())
 
+            # create the "Settings2" widgets only when the state has job submission widgets (for Deadline job submissions)
+            if hasattr(state, "gb_submit"):
+
+                # get the layout of the state settings, which the new widgets will be added to
+                lo = state.gb_submit.layout()
+
+                # create a widget with a label and a combobox
+                state.w_setting2 = QWidget()
+                state.lo_setting2 = QHBoxLayout(state.w_setting2)
+                state.lo_setting2.setContentsMargins(9, 0, 9, 0)
+                state.l_setting2 = QLabel("Setting 2:")
+                state.cb_setting2 = QComboBox()
+                state.cb_setting2.setMinimumWidth(150)
+                state.lo_setting2.addWidget(state.l_setting2)
+                state.lo_setting2.addStretch()
+                state.lo_setting2.addWidget(state.cb_setting2)
+                options = ["setting1", "setting2", "Option3"]
+                state.cb_setting2.addItems(options)
+                lo.addWidget(state.w_setting2)
+
+                # save the state settings when the current dropdown item gets changed
+                state.cb_setting2.currentIndexChanged.connect(lambda s: state.stateManager.saveStatesToScene())
+
     def onStateGetSettings(self, state, settings):
-        if state.ClassName == "Export":
-            if self.isMaya():
-                settings["settings"] = state.chb_setting1.isChecked()
+        # this function collects the currents settings from the GUI widgets in order to save the settings
+
+        if state.className == "Export":
+            if self.core.appPlugin.pluginName == "Houdini":
+                settings["setting1"] = state.chb_setting1.isChecked()
+
             if hasattr(state, "gb_submit"):
                 settings["setting2"] = state.cb_setting2.currentText()
 
     def onStateSettingsLoaded(self, state, settings):
+        # this function loads the state settings from a dict to the GUI widgets
 
         if state.className == "Export":
-            if self.isMaya():
+            if self.core.appPlugin.pluginName == "Houdini":
                 if "setting1" in settings:
                     state.chb_setting1.setChecked(settings["setting1"])
 
@@ -179,11 +216,11 @@ class Prism_Daisy_Pipe_Functions(object):
                     idx = state.cb_setting2.findText(settings["setting2"])
                     if idx != -1:
                         state.cb_setting2.setCurrentIndex(idx)
-    
+
     def preExport(self, **kwargs):
         # this function will be executed before the export started
 
-        if self.isMaya():
+        if self.core.appPlugin.pluginName == "Houdini":
             checked = kwargs["state"].chb_setting1.isChecked()
             # do things with this setting in the current scene
 
