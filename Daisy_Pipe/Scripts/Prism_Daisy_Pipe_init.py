@@ -33,21 +33,10 @@
 
 
 from Prism_Daisy_Pipe_Variables import Prism_Daisy_Pipe_Variables
-from Prism_Daisy_Pipe_externalAccess_Functions import (
-    Prism_Daisy_Pipe_externalAccess_Functions,
-)
 from Prism_Daisy_Pipe_Functions import Prism_Daisy_Pipe_Functions
-from Prism_Daisy_Pipe_Integration import Prism_Daisy_Pipe_Integration
 
 
-class Prism_Plugin_Daisy_Pipe(
-    Prism_Daisy_Pipe_Variables,
-    Prism_Daisy_Pipe_externalAccess_Functions,
-    Prism_Daisy_Pipe_Functions,
-    Prism_Daisy_Pipe_Integration,
-):
+class Prism_Daisy_Pipe(Prism_Daisy_Pipe_Variables, Prism_Daisy_Pipe_Functions):
     def __init__(self, core):
         Prism_Daisy_Pipe_Variables.__init__(self, core, self)
-        Prism_Daisy_Pipe_externalAccess_Functions.__init__(self, core, self)
         Prism_Daisy_Pipe_Functions.__init__(self, core, self)
-        Prism_Daisy_Pipe_Integration.__init__(self, core, self)
