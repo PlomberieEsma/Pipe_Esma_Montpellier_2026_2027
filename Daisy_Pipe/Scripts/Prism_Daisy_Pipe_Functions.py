@@ -20,11 +20,17 @@ class Prism_Daisy_Pipe_Functions(object):
         self.core = core
         self.plugin = plugin
 
-        if self.isStandalone:
+        if self.isStandalone():
             self.importUsdPackages()
 
         self.core.registerCallback("openPBAssetContextMenu", self.onOpenPBAssetContextMenu, plugin=self)
         self.core.registerCallback("openPBAssetTaskContextMenu", self.onOpenPBAssetTaskContextMenu, plugin=self)
+
+        self.core.registerCallback("onStateStartup", self.onStateStartup, plugin=self, priority=40)
+        self.core.registerCallback("onStateGetSettings", self.onStateGetSettings, plugin=self)
+        self.core.registerCallback("onStateSettingsLoaded", self.onStateSettingsLoaded, plugin=self)
+        self.core.registerCallback("preExport", self.preExport, plugin=self)
+        self.core.registerCallback("postExport", self.postExport, plugin=self)
 
     def onOpenPBAssetContextMenu(self, origin, rcMenu, asset):
         # Asset is a PySide6.QtCore.QModelIndex
@@ -139,36 +145,70 @@ class Prism_Daisy_Pipe_Functions(object):
             print("USD packages could not be imported", str(e))
             return
         
-        def onStateStartup(self, state):
-            if state.className == "Export":
-                if self.core.appPlugin.pluginName == "Houdini":
+    def onStateStartup(self, state):
+        if state.className == "Export":
+            if self.isMaya():
 
-                    lo = state.gb_general.layout()
-                    
-                    state.w_setting1 = QWidget()
-                    state.lo_setting1 = QHBoxLayout(state.w_setting1)
-                    state.lo_setting1.setContentsMargins(9, 0, 9, 0)
-                    state.l_setting1 = QLabel("Setting 1:")
-                    state.chb_setting1 = QCheckBox()
-                    state.lo_setting1.addWidget(state.l_setting1)
-                    state.lo_setting1.addStretch()
-                    state.lo_setting1.addWidget(state.chb_setting1)
-                    lo.addWidget(state.w_setting1)
+                lo = state.gb_general.layout()
+                
+                state.w_setting1 = QWidget()
+                state.lo_setting1 = QHBoxLayout(state.w_setting1)
+                state.lo_setting1.setContentsMargins(9, 0, 9, 0)
+                state.l_setting1 = QLabel("Setting 1:")
+                state.chb_setting1 = QCheckBox()
+                state.lo_setting1.addWidget(state.l_setting1)
+                state.lo_setting1.addStretch()
+                state.lo_setting1.addWidget(state.chb_setting1)
+                lo.addWidget(state.w_setting1)
 
-                    state.chb_setting1.toggled.connect(lambda s: state.stateManager.saveStatesToScene())
+                state.chb_setting1.toggled.connect(lambda s: state.stateManager.saveStatesToScene())
 
-        def onStateGetSettings(self, state, settings):
-            if state.ClassName == "Export":
-                divmod
+    def onStateGetSettings(self, state, settings):
+        if state.ClassName == "Export":
+            if self.isMaya():
+                settings["settings"] = state.chb_setting1.isChecked()
+            if hasattr(state, "gb_submit"):
+                settings["setting2"] = state.cb_setting2.currentText()
 
-        def isMaya(self):
+    def onStateSettingsLoaded(self, state, settings):
 
-            return self.core.appPlugin.pluginName == "Maya"
-        
-        def isStandalone(self):
+        if state.className == "Export":
+            if self.isMaya():
+                if "setting1" in settings:
+                    state.chb_setting1.setChecked(settings["setting1"])
 
-            return self.core.appPlugin.pluginName == "Standalone"
+            if hasattr(state, "gb_submit"):
+                if "setting2" in settings:
+                    idx = state.cb_setting2.findText(settings["setting2"])
+                    if idx != -1:
+                        state.cb_setting2.setCurrentIndex(idx)
+    
+    def preExport(self, **kwargs):
+        # this function will be executed before the export started
 
-        def isHoudini(self):
+        if self.isMaya():
+            checked = kwargs["state"].chb_setting1.isChecked()
+            # do things with this setting in the current scene
 
-            return self.core.appPlugin.pluginName == "Houdni"
+        if hasattr(kwargs["state"], "gb_submit"):
+            option = kwargs["state"].cb_setting2.currentText()
+            # do things with this setting in the current scene
+
+    def postExport(self, **kwargs):
+        # this function will be executed after the export completed
+
+        if self.core.appPlugin.pluginName == "Houdini":
+            checked = kwargs["state"].chb_setting1.isChecked()
+            self.core.popup("Exported with setting1: %s" % (bool(checked)))
+
+    def isMaya(self):
+
+        return self.core.appPlugin.pluginName == "Maya"
+    
+    def isStandalone(self):
+
+        return self.core.appPlugin.pluginName == "Standalone"
+
+    def isHoudini(self):
+
+        return self.core.appPlugin.pluginName == "Houdni"
