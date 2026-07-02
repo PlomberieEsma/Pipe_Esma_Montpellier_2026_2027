@@ -1,6 +1,6 @@
 import os, importlib
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
-from Scripts.DaisyTools.core.core import get_core, write_usd, create_master
+from Scripts.DaisyTools.core.core import get_core, write_usd, create_master, add_variant
 import Scripts.DaisyTools.core.core
 importlib.reload(Scripts.DaisyTools.core.core)
 
@@ -16,6 +16,7 @@ def export_usd():
     etype = entity["type"]
     dept = info["department"]
     task = info["task"]
+    name = info["name"]
 
     if not task:
         core.popup("Aucune task assignée à cette scène : impossible d'exporter l'asset/shot en USD.", title="Export USD", severity="error")
@@ -25,11 +26,12 @@ def export_usd():
     master_Path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version="master", location="global")
 
     if etype == "asset" and dept == "02_mod":
-        write_usd("mod", path, default_prim=info["name"], selection_only=True)
+        write_usd("mod", path, default_prim=info["name"], selection_only=False)
         create_master(path, master_Path, default_prim=info["name"])
 
         if "ModH_var" in task:
-            return
+            add_variant(entity=entity, master_path=master_Path, task=task, entity_name=name, type="render", departement="geo")
+            #add_geo_variant(entity=entity, master_path=master_Path, task=task, entity_name=info["name"], type="render", departement="geo")
 
     else:
         return

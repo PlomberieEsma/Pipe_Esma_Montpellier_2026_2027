@@ -90,7 +90,7 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True):
                         "exporter avant de lancer l'export USD."
                     )
             else:
-                selection = cmds.ls(master_grp, long=True)
+                selection = cmds.select(master_grp)
 
             create_selection_set(selection, default_prim + "_geo")
             
@@ -130,60 +130,149 @@ def create_master(file_path, master_path, default_prim=""):
         print(f"SubLayer mis à jour : {master_path}")
 
     
-    def add_variant(entity, master_path, task, entity_name, type, departement):
+# def add_geo_variant(entity, master_path, task, entity_name, type, departement):
 
-        from pxr import Sdf, Usd, UsdGeom
+#     from pxr import Sdf, Usd, UsdGeom, Kind
 
-        default_prim = f"/{entity_name}_asset"
-        variant_prim = f"{default_prim}/{departement}"
-        proxy_path  = f"{default_prim}/{departement}/proxy"
-        render_path = f"{default_prim}/{departement}/render"
+#     core = get_core()
+
+#     default_prim = f"/{entity_name}_asset"
+#     geo_scope    = f"{default_prim}/geo"
+#     proxy_path   = f"{geo_scope}/proxy"
+#     render_path  = f"{geo_scope}/render"
+
+#     productpath = os.path.join(core.getEntityPath(entity=entity), "Export", "USD", "layers", "geo.usda").replace("\\", "/")
+#     print(f"productpath = {productpath}")
+#     if not os.path.exists(productpath):
+#         core.popup("Impossible d'exporter, veuillez executé Create USD asset avant", title="Daisy Pipeline", severity="error")
+#         return
+
+#     stage = Usd.Stage.Open(productpath)
+#     root = stage.GetPrimAtPath(default_prim)
+
+#     # S'assure que le prim racine est bien un Xform avec kind=component
+#     if root.GetTypeName() != "Xform":
+#         root = stage.DefinePrim(default_prim, "Xform")
+#     Usd.ModelAPI(root).SetKind(Kind.Tokens.component)
+#     stage.SetDefaultPrim(root)
+
+#     if not root.GetVariantSets().HasVariantSet(departement):
+#         root.GetVariantSets().AddVariantSet(departement)
+#         print(f"VariantSet '{departement}' créé.")
+#     else:
+#         print(f"VariantSet '{departement}' existe déjà.")
+
+#     vset = root.GetVariantSets().GetVariantSet(departement)
+
+#     variant_exists = task in vset.GetVariantNames()
+
+#     if not variant_exists:
+#         vset.AddVariant(task)
+
+#     vset.SetVariantSelection(task)
+
+#     with vset.GetVariantEditContext():
+
+#         # kind=component sur le prim racine, dans le contexte de cette variante
+#         Usd.ModelAPI(root).SetKind(Kind.Tokens.component)
+
+#         geo = stage.DefinePrim(geo_scope, "Scope")
+#         UsdGeom.Imageable(geo).GetPurposeAttr().Set("default")
+
+#         if type == "proxy":
+#             if stage.GetPrimAtPath(proxy_path).IsValid():
+#                 print("Le proxy existe déjà, aucune action effectuée.")
+#             else:
+#                 proxy = stage.DefinePrim(proxy_path, "Scope")
+#                 proxy.SetMetadata("kind", "")
+#                 UsdGeom.Imageable(proxy).GetPurposeAttr().Set("proxy")
+#                 proxy.GetReferences().AddReference(master_path)
+
+#             render = stage.GetPrimAtPath(render_path)
+#             if render.IsValid():
+#                 proxy_rel = render.GetRelationship("proxyPrim")
+
+#                 if proxy_rel.IsValid() and proxy_rel.GetTargets() == [Sdf.Path(proxy_path)]:
+#                     print("La relation proxyPrim pointe déjà correctement vers le proxy.")
+#                 else:
+#                     if not proxy_rel.IsValid():
+#                         proxy_rel = render.CreateRelationship("proxyPrim")
+#                     proxy_rel.SetTargets([Sdf.Path(proxy_path)])
+#                     print("Relation proxyPrim créée/mise à jour vers :", proxy_path)
+
+#         elif type == "render":
+#             render = stage.GetPrimAtPath(render_path)
+
+#             if render.IsValid():
+#                 print("Le render existe déjà, aucune action effectuée.")
+#             else:
+#                 render = stage.DefinePrim(render_path, "Scope")
+#                 render.SetMetadata("kind", "")
+#                 UsdGeom.Imageable(render).GetPurposeAttr().Set("render")
+#                 render.GetReferences().AddReference(master_path)
+
+#             proxy_exists = stage.GetPrimAtPath(proxy_path).IsValid()
+#             target_path = proxy_path if proxy_exists else render_path
+
+#             proxy_rel = render.GetRelationship("proxyPrim")
+
+#             if proxy_rel.IsValid() and proxy_rel.GetTargets() == [Sdf.Path(target_path)]:
+#                 print("La relation proxyPrim pointe déjà correctement.")
+#             else:
+#                 if not proxy_rel.IsValid():
+#                     proxy_rel = render.CreateRelationship("proxyPrim")
+#                 proxy_rel.SetTargets([Sdf.Path(target_path)])
+#                 print("Relation proxyPrim créée/mise à jour vers :", target_path)
+
+#         else:
+#             return
+
+#     stage.GetRootLayer().Save()
+
+def add_variant(entity, master_path, task, entity_name, type, departement):
+    from pxr import Sdf, Usd, UsdGeom
+
+    core = get_core()
+
+    default_prim = f"/{entity_name}_asset"
+    geo_scope    = f"{default_prim}/geo"
+    proxy_path   = f"{geo_scope}/proxy"
+    render_path  = f"{geo_scope}/render"
+
+    productpath = os.path.join(core.getEntityPath(entity=entity), "Export", "USD", "layers", "geo.usda").replace("\\", "/")
+    print(f"productpath = {productpath}")
+    if not os.path.exists(productpath):
+        core.popup("Impossible d'exporter, veuillez executé Create USD asset avant", title="Daisy Pipeline", severity="error")
+        return
+
+    USD_FILE    = productpath
+    NEW_VARIANT = task
+    PROXY_REF   = master_path
+    RENDER_REF  = master_path
+
+
+    stage = Usd.Stage.Open(USD_FILE)
+    root  = stage.GetPrimAtPath(default_prim)
+
+    vset = root.GetVariantSets().GetVariantSet("geo")
+    vset.AddVariant(NEW_VARIANT)
+    vset.SetVariantSelection(NEW_VARIANT)
+
+    with vset.GetVariantEditContext():
+        geo    = stage.DefinePrim(geo_scope, "Scope")
+        UsdGeom.Imageable(geo).GetPurposeAttr().Set("default")
+        if type == "proxy":
+            proxy  = stage.DefinePrim(proxy_path, "Scope")
+            UsdGeom.Imageable(proxy).GetPurposeAttr().Set("proxy")
+            proxy.GetReferences().AddReference(PROXY_REF)
+        if type == "render":
+            render = stage.DefinePrim(render_path, "Scope")
+            UsdGeom.Imageable(render).GetPurposeAttr().Set("render")
+            render.GetReferences().AddReference(RENDER_REF)
+            render.CreateRelationship("proxyPrim").SetTargets([Sdf.Path(proxy_path)])
+        
+        
         
 
-        productpath = os.path.join(core.getEntityPath(entity=entity), "export", "USD", "layers", "geo.usda").replace("\\", "/")
-
-        if os.path.exists(productpath):
-
-            stage = Usd.Stage.Open(productpath)
-            root = stage.GetPrimAtPath(default_prim)
-
-            vset = root.GetVariantSets().GetVariantSet(departement)
-
-            if task in vset.GetVariantNames():
-                if type == "proxy":
-                    proxy = stage.DefinePrim(proxy_path, "Scope")
-                    UsdGeom.Imageable(proxy).GetPurposeAttr().Set("proxy")
-                    proxy.GetReferences().AddReference(master_path)
-                    render.CreateRelationship("proxyPrim").SetTargets([Sdf.Path(proxy_path)])
-                elif type == "render":                            
-                    render = stage.DefinePrim(render_path, "Scope")
-                    UsdGeom.Imageable(render).GetPurposeAttr().Set("render")
-                    render.GetReferences().AddReference(master_path)
-                    render.CreateRelationship("proxyPrim").SetTargets([Sdf.Path(render_path)])
-                else:
-                    return
-            else:
-                vset.AddVariant(task)
-                vset.SetVariantSelection(task)
-
-                with vset.GetVariantEditConext():
-
-                    geo = stage.DefinePrim(f"{default_prim}/{departement}", "Scope")
-                    UsdGeom.Imageable(geo).GetPurposeAttr().Set("default")
-
-                    if type == "proxy":
-                        proxy = stage.DefinePrim(proxy_path, "Scope")
-                        UsdGeom.Imageable(proxy).GetPurposeAttr().Set("proxy")
-                        proxy.GetReferences().AddReference(master_path)
-                        render.CreateRelationship("proxyPrim").SetTargets([Sdf.Path(proxy_path)])
-                    elif type == "render":                            
-                        render = stage.DefinePrim(render_path, "Scope")
-                        UsdGeom.Imageable(render).GetPurposeAttr().Set("render")
-                        render.GetReferences().AddReference(master_path)
-                        render.CreateRelationship("proxyPrim").SetTargets([Sdf.Path(render_path)])
-                    else:
-                        return
-            stage.GetRootLayer().Save()
-        else:
-            core.popup("Impossible d'exporter, veuillez executé Create USD asset avant", title="Daisy Pipeline", severity="error")
-
+    stage.GetRootLayer().Save()
+    print(f"Variant '{NEW_VARIANT}' ajouté")
