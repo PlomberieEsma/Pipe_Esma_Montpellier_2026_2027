@@ -46,10 +46,10 @@ def create_asset(asset_name):
     to_hython_path = "cd \'" + hython_path.replace("/hython.exe", "") + "\'"
 
     info_path = info["path"]
-    info_project_path = info["projectPath"]
+    info_projectPath = info["projectPath"]
 
     # create command line to launch hython with the create_asset.py script and pass the asset name and info as arguments
-    command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{info_path}' --project_path '{info_project_path}' "
+    command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{info_path}' --projectPath '{info_projectPath}' "
     
     # launch command line in powershell
     subprocess.Popen(command_line)

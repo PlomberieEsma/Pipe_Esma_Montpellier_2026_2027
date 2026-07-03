@@ -26,10 +26,10 @@ try:
     parser = argparse.ArgumentParser()
     parser.add_argument("--assetName", type=str, help="name of the asset to be processed")
     parser.add_argument("--path", type=str, help="path of the asset to be processed")
-    parser.add_argument("--project_path", type=str, help="project path of the asset to be processed")
+    parser.add_argument("--projectPath", type=str, help="project path of the asset to be processed")
     args = parser.parse_args()
 except:
-    raise Error("An argument is missing in the command line, please check the command line arguments\n\nThe command line should be : hython create_asset.py --assetName <asset_name> --path <asset_path> --project_path <project_path> --name <asset_name>")
+    raise Error("An argument is missing in the command line, please check the command line arguments\n\nThe command line should be : hython create_asset.py --assetName <asset_name> --path <asset_path> --projectPath <project_path>")
 
 try:
     asset_name = args.assetName
@@ -39,7 +39,7 @@ except:
 
 
 path = args.path
-project_path = args.project_path
+project_path = args.projectPath
 
 
 
@@ -1094,6 +1094,8 @@ def nodes_create_asset(tasks, asset_name):
     nodes_list["usd_rop1"].parm("execute").pressButton()
     print("Fin du processus")
 
+    hou.hipFile.save(f"{path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
+    print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
 
     elapsed_counter = time.perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
