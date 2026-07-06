@@ -37,18 +37,8 @@ import os
 
 class Prism_Daisy_Pipe_Variables(object):
     def __init__(self, core, plugin):
-        self.version = "v2.0.0"
+        self.version = "v2.0.17"
         self.pluginName = "Daisy_Pipe"
-        self.pluginType = "App"
-        self.appShortName = "Daisy_Pipe"
-        self.appType = "3d"
-        self.hasQtParent = True
-        self.sceneFormats = [".format"]
-        self.appSpecificFormats = self.sceneFormats
-        self.outputFormats = [".abc", ".obj", ".fbx", "ShotCam", ".usd", ".usda", ".usdc", ".usdnc", ".abc", ".bgeosc", ".usdz"]
-        self.appColor = [255, 255, 255]
-        self.renderPasses = []
+        self.pluginType = "Custom"
         self.platforms = ["Windows"]
-        self.pluginDirectory = os.path.abspath(
-            os.path.dirname(os.path.dirname(__file__))
-        )
+        self.pluginDirectory = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
