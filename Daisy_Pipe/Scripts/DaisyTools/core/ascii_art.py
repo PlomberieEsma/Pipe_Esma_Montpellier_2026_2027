@@ -21,7 +21,7 @@
 #   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
 #                   /___/    /_/    /_/                            
 #
-#   by Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio
+#   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
 #   art by Joan G. Stark (Spunk)
 
 import sys
@@ -53,7 +53,7 @@ def print_title():
 /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
                 /___/    /_/    /_/                            
 """
-    print(final1 + "\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\nart by Joan G. Stark (Spunk)\n\n")
+    print(final1 + "\n\nby Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio\nart by Joan G. Stark (Spunk)\n\n")
 
 async def waiting_message(message="Please wait", timer=10):
 

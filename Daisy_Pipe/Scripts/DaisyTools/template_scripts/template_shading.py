@@ -21,7 +21,7 @@
 #   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
 #                   /___/    /_/    /_/                            
 #
-#   by Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio
+#   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
 #   art by Joan G. Stark (Spunk)
 
 def template_shading():
@@ -117,7 +117,7 @@ def template_shading():
 
     configure_mtl_primitives1 = lopnet.createNode("configureprimitive")
     configure_mtl_primitives1.setName("configure_mtl_primitives1")
-    configure_mtl_primitives1.setInput(0, create_mtl1)
+    configure_mtl_primitives1.setInput(0, create_shader1)
     node_position[1] -= 2
     configure_mtl_primitives1.move(node_position)
     configure_mtl_primitives1.setColor(hou.Color((0.3,0.3,0.3)))
