@@ -1,16 +1,48 @@
+#                           .=     ,        =.
+#                   _  _   /'/    )\,/,/(_   \ \
+#                    `//-.|  (  ,\\)\//\)\/_  ) |
+#                    //___\   `\\\/\\/\/\\///'  /
+#                 ,-"~`-._ `"--'_   `"'"`  _ \`'"~-,_
+#                 \       `-.  '_`.      .'_` \ ,-"~`/
+#                  `.__.-'`/  ( -\        /- )|-.__,'
+#                    ||   |    \ O)  /^\ (O / |
+#                    `\\  |         /   `\    /
+#                      \\  \       /      `\ /
+#                       `\\ `-.  /' .---.--.\
+#                         `\\/`~(, '()      ('
+#                          /(O) \\   _,.-.,_)
+#                         //  \\ `\'`      /
+#                        / |  ||   `""'"~"`
+#                      /'  |__||
+#                            `o
+#      ___       _                    _          ___               
+#     / _ \___ _(_)__ __ __     ___  (_)__  ___ / (_)__  ___       
+#    / // / _ `/ (_-</ // /    / _ \/ / _ \/ -_) / / _ \/ -_)      
+#   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
+#                   /___/    /_/    /_/                            
+#
+#   by Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio
+#   art by Joan G. Stark (Spunk)
+
 from qtpy.QtCore import *
 from qtpy.QtGui import *
 from qtpy.QtWidgets import *
 from functools import partial
 import os
 
-
-#import importlib
-#from DaisyTools.core.command_launcher import create_asset
+from DaisyTools.core.command_launcher import Command_launcher
 
 from PrismUtils.Decorators import err_catcher_plugin as err_catcher
 
 class SelectedAssetsList(QTreeWidget):
+
+    #-----------------------------------------------------------------------------------#
+    # Class used in the Asset Browser to handle the asset movement between lists        #
+    # Actions to Drag and Drop the Asset from the origin list to the selected list      #
+    # Action to Delete the Asset from the selected list                                 #
+    #-----------------------------------------------------------------------------------#
+
+    
     def __init__(self, parentDlg):
         super(SelectedAssetsList, self).__init__()
         self.parentDlg = parentDlg
@@ -45,15 +77,27 @@ class Prism_Daisy_Pipe_Functions(object):
         self.core.registerCallback("onProjectBrowserStartup", self.onProjectBrowserStartup, plugin=self)
         self.core.registerCallback("openPBAssetContextMenu", self.onOpenPBAssetContextMenu, plugin=self)
         self.core.registerCallback("openPBAssetTaskContextMenu", self.onOpenPBAssetTaskContextMenu, plugin=self)
-        assetForScene={}
+        self.Command_launcher = Command_launcher(core, plugin)
 
     # TOP GENERAL Menu
     def onProjectBrowserStartup(self, origin):
+        
+        #-----------------------------------------------------------------------------------#
+        # Create a general menu 'DaisyMenu'                                                 #
+        # Create an option 'Asset Browser'                                                  #
+        # Launch the opening of the Asset Browser when 'Asset BRowser' is triggered         #
+        #-----------------------------------------------------------------------------------#
+
         origin.daisyMenu = QMenu("DaisyMenu")
         origin.daisyMenu.addAction("Asset Browser", partial(self.onAssetBrowserTriggered, origin))
         origin.menubar.addMenu(origin.daisyMenu)
 
     def onAssetBrowserTriggered(self, origin, checked=False):
+        
+        #-----------------------------------------------------------------------------------#
+        # Window Asset Browser to select assets to load into a scene during layout          #
+        #-----------------------------------------------------------------------------------#
+
         try:
             allAssetPaths = self.core.entities.getAssetPaths()
             self.assetRoot = os.path.commonpath(allAssetPaths) if allAssetPaths else ""
@@ -94,6 +138,11 @@ class Prism_Daisy_Pipe_Functions(object):
             self.core.popup("Erreur AssetBrowser: %s" % e)
 
     def onAssetsDropped(self):
+        
+        #-----------------------------------------------------------------------------------#
+        # Add asset to the 'Selected Assets' list then refresh list                         #
+        #-----------------------------------------------------------------------------------#
+
         entities = self.w_entities.getCurrentData(returnOne=False)
         entities = [e for e in entities if e["type"] == "asset"]
 
@@ -105,6 +154,11 @@ class Prism_Daisy_Pipe_Functions(object):
         self.refreshSelectedAssetsList()
 
     def refreshSelectedAssetsList(self):
+         
+        #-----------------------------------------------------------------------------------#
+        # Refresh the 'Selected Assets' list                                                #
+        #-----------------------------------------------------------------------------------#
+
         self.lw_selectedAssets.clear()
         self.lw_selectedAssets.setIconSize(QSize(50, 50))
 
@@ -142,6 +196,11 @@ class Prism_Daisy_Pipe_Functions(object):
         self.lw_selectedAssets.expandAll()
 
     def onRemoveSelectedAssets(self, items):
+         
+        #-----------------------------------------------------------------------------------#
+        # Delete asset to the 'Selected Assets' list then refresh list                      #
+        #-----------------------------------------------------------------------------------#
+
         for item in items:
             entity = item.data(0, Qt.UserRole)
             if not entity:
@@ -152,12 +211,16 @@ class Prism_Daisy_Pipe_Functions(object):
         self.refreshSelectedAssetsList()
 
     def onValidateAssetsBrowser(self):
+         
+        #-----------------------------------------------------------------------------------------#
+        # Output the list of selected asset in the Asset Browser with their path as a dictionary  #
+        #-----------------------------------------------------------------------------------------#
+
         output = {}
         for entity in self.selectedAssetsData.values():
             name = entity.get("asset", "")
             path = entity.get("paths", "")
             output[name] = path
-        self.core.popup("Selected Output: %s" % (output))
         return output
 
 
@@ -173,15 +236,22 @@ class Prism_Daisy_Pipe_Functions(object):
 
 
 
-
-    # ASSET Contextual Menu
+    ##############################################################################################################
+    ###########################     ASSET Contextual Menu - Create USD      ######################################
+    ##############################################################################################################
     def onOpenPBAssetContextMenu(self, origin, rcMenu, asset):
+        
+        #-----------------------------------------------------------------------------------#
+        # Add an option "CreateUSD Asset" to the context menu for assets                    #
+        # When clicked, launch the function onCreateUsdAsset with the asset as argument     #
+        #-----------------------------------------------------------------------------------#
+        
         # Asset is a PySide6.QtCore.QModelIndex
         # Get the item
         item = asset.data(Qt.UserRole)
         if item is None:
             return
-        print("Item: %s" % item)
+        self.core.popup("Item: %s" % item)
 
         # Check if the item is an asset
         if item["type"] != "asset":
@@ -193,12 +263,27 @@ class Prism_Daisy_Pipe_Functions(object):
         rcMenu.addAction(createUsdAssetAction)
 
     def onCreateUsdAsset(self, item):
-       self.core.popup("Create USD for asset: %s" % item["asset"])
-        #    create_asset(item["asset"])
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the selected asset from the Create USD Asset option                           #
+        # Launch the create asset function from Toto's script                               #
+        #-----------------------------------------------------------------------------------#
+
+        self.core.popup("Create USD for asset: %s" % item["asset"])
+        self.Command_launcher.create_asset(item["asset"], item)
 
 
-    # ASSET TASK Contextual Menu
+    ##############################################################################################################
+    ###########################     ASSET TASK Contextual Menu - Variant     #####################################
+    ##############################################################################################################
     def onOpenPBAssetTaskContextMenu(self, origin, rcMenu, widget):
+        
+        #-----------------------------------------------------------------------------------#
+        # Create a submenu "Add Variants" to the context menu for assets' task              #
+        # Add as options every current existing task                                        #
+        # When clicked, launch the function onCreateVariant with the task as argument       #
+        #-----------------------------------------------------------------------------------#
+        
         # Asset is a PySide6.QtCore.QModelIndex
         #Check where the cursor is to launch at the right spot
         entity = origin.getCurrentEntity()
@@ -235,8 +320,12 @@ class Prism_Daisy_Pipe_Functions(object):
         rcMenu.addMenu(addVarMenu)
         
     def onCreateVariant(self, origin, entity, department, taskName, existingTasks):
-        #self.core.popup("Create variant for task: %s" % taskName)
-
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the chosen task from the Create Variant option                                #
+        # Create the task with the same name and variant increment                          #
+        #-----------------------------------------------------------------------------------#
+        
         #Check existing tasks and determine the right name
         if f"{taskName}_02" not in existingTasks:
             varTaskName = f"{taskName}_var02"
@@ -256,7 +345,6 @@ class Prism_Daisy_Pipe_Functions(object):
         if not path:
             return
         origin.refreshTasks()
-        self.core.popup("Variant créée: %s" % varTaskName)
         return path
 
     # if returns true, the plugin will be loaded by Prism
