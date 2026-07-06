@@ -1,68 +1,79 @@
+#                           .=     ,        =.
+#                   _  _   /'/    )\,/,/(_   \ \
+#                    `//-.|  (  ,\\)\//\)\/_  ) |
+#                    //___\   `\\\/\\/\/\\///'  /
+#                 ,-"~`-._ `"--'_   `"'"`  _ \`'"~-,_
+#                 \       `-.  '_`.      .'_` \ ,-"~`/
+#                  `.__.-'`/  ( -\        /- )|-.__,'
+#                    ||   |    \ O)  /^\ (O / |
+#                    `\\  |         /   `\    /
+#                      \\  \       /      `\ /
+#                       `\\ `-.  /' .---.--.\
+#                         `\\/`~(, '()      ('
+#                          /(O) \\   _,.-.,_)
+#                         //  \\ `\'`      /
+#                        / |  ||   `""'"~"`
+#                      /'  |__||
+#                            `o
+#      ___       _                    _          ___               
+#     / _ \___ _(_)__ __ __     ___  (_)__  ___ / (_)__  ___       
+#    / // / _ `/ (_-</ // /    / _ \/ / _ \/ -_) / / _ \/ -_)      
+#   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
+#                   /___/    /_/    /_/                            
+#
+#   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
+#   art by Joan G. Stark (Spunk)
+
 #import modules
-import hou, os, json, argparse, time, ast
+import hou, os, argparse, time
 
 print("execute create_asset.py\n\n")
-# titre
+
+# title
 try:
     from Scripts.DaisyTools.core.ascii_art import print_title
     print_title()
 except:
     print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
 
-# doit être lancé avec hython ou houdini
+# needs to be launched in hython or houdini, otherwise it will not work
 
-# importe path.json
-# with open('c:/Users/3D4/Downloads/04_usd/TEST_USD_PROJECT_2/09_Dev/path.json', 'r') as file:
-#     jsonPath = json.load(file)
 
 class Error(Exception):
-    # utiliser pour print une erreur
+    # use to raise errors in the script
     pass
 
 ##########################################################################################################################################
 #=========================================================== SET VARIABLES ===============================================================
 ##########################################################################################################################################
 
-# customisation de la ligne de commande pour faire passer le nom de l'asset à traiter et ses infos
-parser = argparse.ArgumentParser()
-parser.add_argument("--assetName", type=str, help="nom de l'asset à traiter")
-# parser.add_argument("--info", type=str, help="infos de l'asset à traiter")
-parser.add_argument("--path", type=str, help="infos de l'asset à traiter")
-parser.add_argument("--project_path", type=str, help="infos de l'asset à traiter")
-parser.add_argument("--name", type=str, help="infos de l'asset à traiter")
-args = parser.parse_args()
+# customization of the command line to pass the name of the asset to be processed and its info
+try:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--assetName", type=str, help="name of the asset to be processed")
+    parser.add_argument("--path", type=str, help="path of the asset to be processed")
+    parser.add_argument("--projectPath", type=str, help="project path of the asset to be processed")
+    args = parser.parse_args()
+except:
+    raise Error("An argument is missing in the command line, please check the command line arguments\n\nThe command line should be : hython create_asset.py --assetName <asset_name> --path <asset_path> --projectPath <project_path>")
 
 try:
     asset_name = args.assetName
-    print(f"asset à traiter : {asset_name}")
+    print(f"asset to process : {asset_name}")
 except:
-    raise Error("Pas de nom d'asset passé dans la ligne de commande hython") # trouver un moyen de récup le nom de l'asset d'une manière ou d'une autre #####################################################################################################################################
+    raise Error("No asset name passed in the hython command line, please check the command line arguments")
 
 
-try:
-    # info = ast.literal_eval(args.info)
-    path = args.path
-    project_path = args.project_path
-    name = args.name
-    # print(info)
-except:
-    raise Error("get_entity_info ne fonctionne pas")
+path = args.path
+project_path = args.projectPath
 
-# path = info["path"]
-# project_path = info["projectPath"]
-# name = info["name"]
 
-print(f"{path}/Export/ModH/master/{name}_ModH_master.usda")
-print(project_path)
 
-# project_path = jsonPath["global"]["project_path"]
-# assets = os.listdir(project_path + "/03_Production/Assets")
-
-# tasks = os.listdir(f"{project_path}/03_Production/Assets/Item/{asset_name}/Export") # récup le type d'asset (remplacer Item)
 tasks = os.listdir(f"{path}/Export")
 tasks_save = list(tasks)
 usd_file_format = "usda"
-print(tasks)
+print("\n\n--------------------------------------------------------------------------------------------------\n\n")
+print(f"tasks : {tasks}")
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
@@ -71,12 +82,12 @@ print(tasks)
 def mod_detect(tasks):
 
     #-------------------------------------------------------#
-    # Detecte si il y a une ModH et / ou une ModL,          #
-    # retourne un dictionaire avec :                        #
-    # - le nom du departement                               #
-    # - si il y a une ModL                                  #
-    # - si il y a une ModH                                  #
-    # - le string a detecter pour reperer les tasks de mode #
+    # Detect if there is a ModH and/or a ModL,              #
+    # returns a dictionary with :                           #
+    # - the department name                                 #
+    # - whether there is a ModL                             #
+    # - whether there is a ModH                             #
+    # - the string to detect for identifying the mode tasks #
     #-------------------------------------------------------#
 
 
@@ -91,10 +102,10 @@ def mod_detect(tasks):
         string_to_detect = "ModL"
         is_ModL = True
     else:
-        raise Error("Pas de modL ou de ModH, il faut au moins une geo pour créer un asset")
+        raise Error("No modL or ModH found in the tasks list, you need at least one of them to create the USD asset")
 
-    print("is ModH = "+str(is_ModH))
-    print("is ModL = "+str(is_ModL))
+    print(f"is ModH = {is_ModH}")
+    print(f"is ModL = {is_ModL}")
 
     is_mod_level = {"departement" : "geo",
                     "ModL" : is_ModL,
@@ -105,12 +116,12 @@ def mod_detect(tasks):
 def grm_detect(tasks):
 
     #-----------------------------------------------------------#
-    # Detecte si il y a un groom et un proxy de groom,          #
-    # retourne un dictionaire avec :                            #
-    # - le nom du departement                                   #
-    # - si il y a une GrmL                                      #
-    # - si il y a une GrmH                                      #
-    # - le string a detecter pour reperer les tasks de groom    #
+    # Detect if there is a groom and a groom proxy,             #
+    # returns a dictionary with :                               #
+    # - the department name                                     #
+    # - whether there is a GrmL                                 #
+    # - whether there is a GrmH                                 #
+    # - the string to detect for identifying the groom tasks    #
     #-----------------------------------------------------------#
 
 
@@ -118,7 +129,6 @@ def grm_detect(tasks):
     is_GrmL = False
     if "Groom" in tasks:
         string_to_detect = "Groom"
-        # files = os.listdir(f"{project_path}/03_Production/Assets/Item/{asset_name}/Export/Groom/master") # récup le type d'asset (remplacer Item)
         files = os.listdir(f"{path}/Export/Groom/master")
         for file in files:
             if "Groom_master" in file:
@@ -131,8 +141,8 @@ def grm_detect(tasks):
     else:
         string_to_detect = "Groom"
 
-    print("is GrmH = "+str(is_GrmH))
-    print("is GrmL = "+str(is_GrmL))
+    print(f"is GrmH = {is_GrmH}")
+    print(f"is GrmL = {is_GrmL}")
 
     is_grm_level = {"departement" : "grm",
                     "GrmL" : is_GrmL,
@@ -143,11 +153,11 @@ def grm_detect(tasks):
 def mtl_detect(tasks):
 
     #-----------------------------------------------------------#
-    # Detecte si il y a un material (de geo),                   #
-    # retourne un dictionaire avec :                            #
-    # - le nom du departement                                   #
-    # - si il y a un Shader                                     #
-    # - le string a detecter pour reperer les tasks de material #
+    # Detect if there is a material (of geo),                   #
+    # returns a dictionary with :                               #
+    # - the department name                                     #
+    # - whether there is a Shader                               #
+    # - the string to detect for identifying the material tasks #
     #-----------------------------------------------------------#
 
 
@@ -158,7 +168,7 @@ def mtl_detect(tasks):
     else:
         string_to_detect = "Shading"
 
-    print("is Shading = "+str(is_Shading))
+    print(f"is Shading = {is_Shading}")
 
     is_mtl_level = {"departement" : "mtl",
                     "Shading" : is_Shading,
@@ -168,11 +178,11 @@ def mtl_detect(tasks):
 def mtl_groom_detect(tasks):
 
     #-------------------------------------------------------------------#
-    # Detecte si il y a un material (de groom),                         #
-    # retourne un dictionaire avec :                                    #
-    # - le nom du departement                                           #
-    # - si il y a un Shader de groom                                    #
-    # - le string a detecter pour reperer les tasks de groom material   #
+    # Detect if there is a material (of groom),                         #
+    # returns a dictionary with :                                       #
+    # - the department name                                             #
+    # - whether there is a Shader of groom                              #
+    # - the string to detect for identifying the groom material tasks   #
     #-------------------------------------------------------------------#
 
 
@@ -183,7 +193,7 @@ def mtl_groom_detect(tasks):
     else:
         string_to_detect = "ShadingGroom"
 
-    print("is ShadingGroom = "+str(is_ShadingGroom))
+    print(f"is ShadingGroom = {is_ShadingGroom}")
 
     is_mtl_groom_level = {"departement" : "mtl_groom",
                     "ShadingGroom" : is_ShadingGroom,
@@ -193,10 +203,10 @@ def mtl_groom_detect(tasks):
 def variant_list(departement, string_to_detect, tasks):
 
     #---------------------------------------------------------------#
-    # Detecte si il y a des variants pour le departement associe,   #
-    # retourne un dictionaire avec :                                #
-    # - si il y a des variants                                      #
-    # - la liste des noms des variants                              #
+    # Detect if there are variants for the associated department,   #
+    # returns a dictionary with :                                   #
+    # - whether there are variants                                  #
+    # - the list of variant names                                   #
     #---------------------------------------------------------------#
 
 
@@ -205,33 +215,33 @@ def variant_list(departement, string_to_detect, tasks):
     previews_deleted = False
     contrecompte = 0
 
-    # passe en revue la liste des tasks en checkant a chaque fois si elle fait partie du departement
-    # si ce n'est pas le cas, on delete le departement de la liste
-    # puis, pour les tasks qu'on garde, on les renomme
+    # lists all the tasks and checks if they are part of the department
+    # if not, it deletes the department from the list
+    # then, for the tasks that are kept, it renames them
 
     for i in range(len(tasks)):
         if previews_deleted:
-            # si une task a été pop précédemment
+            # if a task has been popped previously
             contrecompte += 1
             previews_deleted = False
 
         if string_to_detect not in tasks[i-contrecompte]:
-            # delete ce qui n'est pas dans le département ciblé
+            # delete the task from the list if it is not part of the targeted department
             tasks.pop(i-contrecompte)
             previews_deleted = True
         else:
-            # ce qui est dans le département ciblé
+            # what's not in the targeted department
             dont_change_name = False
             if departement == "grm" or departement == "mtl":
                 if "ShadingGroom" in tasks[i-contrecompte]:
-                    # cas spécial de ShadingGroom
+                    # special case for ShadingGroom, we don't want to rename it
                     tasks.pop(i-contrecompte)
                     previews_deleted = True
                     dont_change_name = True
 
             try:
                 if string_to_detect in tasks[i-contrecompte] and dont_change_name == False:
-                    # renommage des tasks
+                    # rename the task to the department name, so that it can be used in the nodes creation
                     tasks[i-contrecompte] = tasks[i-contrecompte].replace(string_to_detect, departement)
                     dont_change_name = False
             except:
@@ -241,7 +251,7 @@ def variant_list(departement, string_to_detect, tasks):
 
     variant_index = 0
 
-    # renommage des variants
+    # rename the variants to have a uniform naming convention, and check if there are any variants
     for variant in variants:
         if "_var" in variant:
             is_variant = True
@@ -249,7 +259,7 @@ def variant_list(departement, string_to_detect, tasks):
             variants[variant_index] = variant + "_var01"
         variant_index += 1
 
-    print(departement + " variants : " + str(variants))
+    print(f"{departement} variants : {variants}")
     variant_list = {"is_variant" : is_variant, "variants" : variants}
     return variant_list
 
@@ -260,9 +270,9 @@ def variant_list(departement, string_to_detect, tasks):
 def nodes_var_geo(tasks, asset_name, node_input, detections):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes aux variants de geo                   #
-    # fait tourner une boucle pour creer les nodes pour chaque variant  #
-    # retourne la liste de tous les nodes crees                         #
+    # Create nodes for each geo variant                                 #
+    # makes a loop to create the nodes for each variant                 #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -281,7 +291,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
         var_output = []
         for variant in geo_variants:
 
-            # modifie les path des variants
+            # modifies the variant paths
             proxy_var_path = proxy_path
             if variant != "geo_var01":
                 proxy_var_path = proxy_path.replace("ModL", "ModL" + variant.replace("geo", ""))
@@ -405,9 +415,9 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
 def nodes_var_grm(tasks, asset_name, node_input, detections):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes aux variants de groom                 #
-    # fait tourner une boucle pour creer les nodes pour chaque variant  #
-    # retourne la liste de tous les nodes crees                         #
+    # Create nodes for each groom variant                               #
+    # makes a loop to create the nodes for each variant                 #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -436,7 +446,7 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
 
         for variant in grm_variants:
 
-            # modifie les path des variants
+            # modifies the variant paths
             proxy_var_path = proxy_path
             if variant != "grm_var01":
                 proxy_var_path = proxy_path.replace("Groom", "Groom" + variant.replace("grm", ""))
@@ -566,10 +576,10 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
 def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
     #-----------------------------------------------------------------------------------------------------------#
-    # Creation des nodes associes aux variants de material (de geo et de groom)                                 #
-    # fait tourner 2 boucles pour creer les nodes pour chaque variant (une pour la geo et une pour le groom)    #    
-    # merge les 2 groupes de nodes                                                                              #
-    # retourne la liste de tous les nodes crees                                                                 #
+    # create nodes for each material variant (for geo and groom)                                                #
+    # create 2 loops to create the nodes for each variant (one for geo and one for groom)                       #
+    # merge the 2 node groups                                                                                   #
+    # return the list of all created nodes                                                                      #
     #-----------------------------------------------------------------------------------------------------------#
 
 
@@ -596,7 +606,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
     outputs = {}
 
     if is_mtl_variant:
-        # pour le shading de la geo
+        # for the shading of the geo
         var_output = []
 
         begin_var_mtl = lopnet.createNode("begincontextoptionsblock")
@@ -607,7 +617,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
         for variant in mtl_variants:
 
-            # modifie les path des variants
+            # modifies the variant paths
             mtl_var_path = mtl_path
             if variant != "mtl_var01":
                 mtl_var_path = mtl_path.replace("Shading", "Shading" + variant.replace("mtl", ""))
@@ -642,14 +652,14 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
             ref_mtl1 = lopnet.createNode("reference")
             ref_mtl1.setName("ref_mtl1")
             ref_mtl1.setInput(0, node_input)
-            ref_mtl1.parm("primpath1").set(f"{root_name}/mtl")
+            ref_mtl1.parm("primpath1").set(root_name)
             ref_mtl1.parm("filepath1").set(mtl_path)
 
             outputs.update({"ref_mtl1" : ref_mtl1})
 
 
     if is_mtl_groom_variant:
-        # pour le shading du groom
+        # for the shading of the groom
         var_output = []
 
         begin_var_mtl_groom = lopnet.createNode("begincontextoptionsblock")
@@ -660,7 +670,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
         for variant in mtl_groom_variants:
 
-            # modifie les path des variants
+            # modifies the variant paths
             mtl_groom_var_path = mtl_groom_path
             if variant != "mtl_groom_var01":
                 mtl_groom_var_path = mtl_groom_path.replace("Shading", "Shading" + variant.replace("mtl_groom", ""))
@@ -727,8 +737,8 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 def nodes_geo(tasks, asset_name, detetcions):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes a la geo                              #
-    # retourne la liste de tous les nodes crees                         #
+    # create geo nodes                                                  #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -775,8 +785,8 @@ def nodes_geo(tasks, asset_name, detetcions):
 def nodes_groom(tasks, asset_name, input_nodes, detections):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes au groom                              #
-    # retourne la liste de tous les nodes crees                         #
+    # create groom nodes                                                #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -821,8 +831,8 @@ def nodes_groom(tasks, asset_name, input_nodes, detections):
 def nodes_mtl(tasks, asset_name, input_nodes, detections):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes aux materials                         #
-    # retourne la liste de tous les nodes crees                         #
+    # create material nodes                                             #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -877,8 +887,8 @@ def nodes_mtl(tasks, asset_name, input_nodes, detections):
 def nodes_payload(asset_name, input_nodes, detections):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes a la creation des payloads            #
-    # retourne la liste de tous les nodes crees                         #
+    # create payload nodes                                              #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -958,8 +968,8 @@ def nodes_payload(asset_name, input_nodes, detections):
 def nodes_class(asset_name, input_nodes):
 
     #-------------------------------------------------------------------#
-    # Creation des nodes associes a la creation de la __class__         #
-    # retourne la liste de tous les nodes crees                         #
+    # create class nodes                                                #
+    # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
 
@@ -989,8 +999,8 @@ def nodes_class(asset_name, input_nodes):
 def nodes_metadata_write(asset_name, input_nodes, detections):
 
     #---------------------------------------------------------------------------#
-    # Creation des nodes associes a la generation de metadatas et a l'export    #
-    # retourne la liste de tous les nodes crees                                 #
+    # create metadata and export nodes                                          #
+    # return the list of all created nodes                                      #
     #---------------------------------------------------------------------------#
 
 
@@ -1001,7 +1011,6 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
     asset_info_metadata1.setInput(0, input_nodes["inherit_class1"])
     asset_info_metadata1.parm("primpattern").set("""`chs("../create_component1/primpath")`""")
     asset_info_metadata1.parm("setassetidentifier").set(1)
-    # asset_info_metadata1.parm("assetidentifier").set(f"{project_path}/03_Production/Assets/Item/{asset_name}/Export/USD/{asset_name}.{usd_file_format}")
     asset_info_metadata1.parm("assetidentifier").set(f"{path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
     asset_info_metadata1.parm("setassetname").set(1)
     asset_info_metadata1.parm("assetname").set(asset_name)
@@ -1050,16 +1059,16 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
 def nodes_create_asset(tasks, asset_name):
 
     #-------------------------------------------------------#
-    # crée l'arborescence globale de la création d'asset    #
+    # create the global asset creation tree                 #
     #-------------------------------------------------------#
 
 
     start_counter = time.perf_counter()
 
-    # set le framerange à 1 pour éviter d'écrire le set extents sur plein de frames
+    # set framerange to 1 to avoid writing the set extents on multiple frames
     hou.playbar.setFrameRange(1,1)
 
-    # détections et listing des départements présents
+    # detection and listing of the present departments
 
     is_mod_detect = mod_detect(tasks)
 
@@ -1080,7 +1089,7 @@ def nodes_create_asset(tasks, asset_name):
 
     nodes_list = {} # liste de tt les nodes
 
-    # appels de fonctions pour creer les nodes
+    # call the functions to create nodes for each department and update the nodes_list with the created nodes
 
     nodes_geo_list = nodes_geo(tasks, asset_name, detections)
     nodes_list.update(nodes_geo_list)
@@ -1106,11 +1115,13 @@ def nodes_create_asset(tasks, asset_name):
     nodes_metadata_write_list = nodes_metadata_write(asset_name, nodes_list, detections)
     nodes_list.update(nodes_metadata_write_list)
 
-    # execution de l'export
+    # export the master USD file
     print("\n\n\nVeuillez patienter ...")
     nodes_list["usd_rop1"].parm("execute").pressButton()
     print("Fin du processus")
 
+    hou.hipFile.save(f"{path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
+    print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
 
     elapsed_counter = time.perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
