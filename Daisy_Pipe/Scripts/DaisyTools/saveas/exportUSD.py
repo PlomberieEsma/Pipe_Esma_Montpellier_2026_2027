@@ -28,11 +28,6 @@ def export_usd():
     if etype == "asset" and dept == "02_mod":
         write_usd("mod", path, default_prim=info["name"], selection_only=False)
         create_master(path, master_Path, default_prim=info["name"])
-
-        if "ModH_var" in task:
-            add_variant(entity=entity, master_path=master_Path, task=task, entity_name=name, type="render", departement="geo")
-            #add_geo_variant(entity=entity, master_path=master_Path, task=task, entity_name=info["name"], type="render", departement="geo")
-
     else:
         return
     
