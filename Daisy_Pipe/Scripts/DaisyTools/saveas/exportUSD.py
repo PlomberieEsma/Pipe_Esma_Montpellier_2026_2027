@@ -24,6 +24,8 @@ def export_usd():
 
     path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version=None, location="global")
     master_Path = core.products.generateProductPath(entity=entity, task=task, extension=".usda", version="master", location="global")
+    
+    print(path)
 
     if etype == "asset" and dept == "02_mod":
         write_usd("mod", path, default_prim=info["name"], selection_only=False)

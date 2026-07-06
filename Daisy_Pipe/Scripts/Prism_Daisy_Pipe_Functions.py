@@ -253,7 +253,6 @@ class Prism_Daisy_Pipe_Functions(object):
     ##############################################################################################################
     ###########################     ASSET Contextual Menu - Create USD      ######################################
     ##############################################################################################################
-
     def onOpenPBAssetContextMenu(self, origin, rcMenu, asset):
         
         #-----------------------------------------------------------------------------------#
@@ -277,6 +276,20 @@ class Prism_Daisy_Pipe_Functions(object):
         createUsdAssetAction.triggered.connect(lambda: self.onCreateUsdAsset(item))
         rcMenu.addAction(createUsdAssetAction)
 
+    def onCreateUsdAsset(self, item):
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the selected asset from the Create USD Asset option                           #
+        # Launch the create asset function from Toto's script                               #
+        #-----------------------------------------------------------------------------------#
+
+        self.core.popup("Create USD for asset: %s" % item["asset"])
+        self.Command_launcher.create_asset(item["asset"], item)
+
+
+    ##############################################################################################################
+    ###########################     ASSET TASK Contextual Menu - Variant     #####################################
+    ##############################################################################################################
     def onOpenPBAssetTaskContextMenu(self, origin, rcMenu, widget):
         
         #-----------------------------------------------------------------------------------#
@@ -319,21 +332,6 @@ class Prism_Daisy_Pipe_Functions(object):
                 addVarMenu.addAction(taskAction)
 
         rcMenu.addMenu(addVarMenu)
-        
-    def onCreateUsdAsset(self, item):
-        
-        #-----------------------------------------------------------------------------------#
-        # Get the selected asset from the Create USD Asset option                           #
-        # Launch the create asset function from Toto's script                               #
-        #-----------------------------------------------------------------------------------#
-
-        self.core.popup("Create USD for asset: %s" % item["asset"])
-        self.Command_launcher.create_asset(item["asset"], item)
-
-
-    ##############################################################################################################
-    ###########################     ASSET TASK Contextual Menu - Variant     #####################################
-    ##############################################################################################################
    
     def onCreateVariant(self, origin, entity, department, taskName, existingTasks):
         
