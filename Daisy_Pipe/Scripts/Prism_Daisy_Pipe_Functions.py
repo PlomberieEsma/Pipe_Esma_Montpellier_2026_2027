@@ -239,11 +239,11 @@ class Prism_Daisy_Pipe_Functions(object):
 
         #Check existing tasks and determine the right name
         if f"{taskName}_02" not in existingTasks:
-            varTaskName = f"{taskName}_02"
+            varTaskName = f"{taskName}_var02"
         else:
             varTaskName = None
             for i in range(3, 99):
-                candidate = f"{taskName}_{i:02d}"
+                candidate = f"{taskName}_var{i:02d}"
                 if candidate not in existingTasks:
                     varTaskName = candidate
                     break
