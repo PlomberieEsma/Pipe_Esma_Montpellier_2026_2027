@@ -1,7 +1,3 @@
-from pxr.UsdUtils import fixBrokenPixarSchemas
-from Scripts.DaisyTools.setupAsset import maya
-from Scripts.DaisyTools.setupAsset import maya
-from Scripts.DaisyTools import core
 from Scripts.DaisyTools.core.dcc.launcher import get_dcc
 from Scripts.DaisyTools.setupAsset.maya.setup_geo import setup_geo, geo_is_complete
 import json, os
