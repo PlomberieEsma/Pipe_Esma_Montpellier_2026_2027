@@ -86,7 +86,7 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True):
                         "exporter avant de lancer l'export USD."
                     )
             else:
-                selection = cmds.ls(master_grp, long=True)
+                selection = cmds.select(master_grp)
 
             create_selection_set(selection, default_prim + "_geo")
             
@@ -124,5 +124,3 @@ def create_master(file_path, master_path, default_prim=""):
         layer.Save() #save master usd file
 
         print(f"SubLayer mis à jour : {master_path}")
-
-

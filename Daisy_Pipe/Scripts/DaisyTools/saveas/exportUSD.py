@@ -1,6 +1,6 @@
 import os, importlib
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
-from Scripts.DaisyTools.core.core import get_core, write_usd, create_master
+from Scripts.DaisyTools.core.core import get_core, write_usd, create_master, add_variant
 import Scripts.DaisyTools.core.core
 importlib.reload(Scripts.DaisyTools.core.core)
 
@@ -16,6 +16,7 @@ def export_usd():
     etype = entity["type"]
     dept = info["department"]
     task = info["task"]
+    name = info["name"]
 
     if not task:
         core.popup("Aucune task assignée à cette scène : impossible d'exporter l'asset/shot en USD.", title="Export USD", severity="error")
