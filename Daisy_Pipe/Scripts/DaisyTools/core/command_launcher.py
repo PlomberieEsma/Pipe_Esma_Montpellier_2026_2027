@@ -61,6 +61,8 @@ class Command_launcher(object):
         # path to the create_asset.py script to be launched with hython
         python_file_path = project_path + "00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/createUSDAsset/create_asset.py"
 
+        # path to the create_asset.py script to be launched with hython
+        python_file_path = project_path + "00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/createUSDAsset/create_asset.py"
 
         asset_name = str(asset_name)
         to_hython_path = "cd \'" + hython_path.replace("/hython.exe", "") + "\'"
