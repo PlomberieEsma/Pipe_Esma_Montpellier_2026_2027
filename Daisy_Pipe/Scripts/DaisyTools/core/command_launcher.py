@@ -47,22 +47,19 @@ class Command_launcher(object):
         # project path : path of the project, it is passed in the command line to hython                    #
         #---------------------------------------------------------------------------------------------------#
 
-        # importe path.json to get the path of hython.exe
-        with open('//gandalf/3D4-2026/Dev_Pipe/Daisy_Pipe/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/path.json', 'r') as file:
-            jsonPath = json.load(file)
-
 
         project_path = self.core.projectPath
-        project_path.replace("\\", "/")
-        project_path.replace("//", "/")
+        project_path = project_path.replace("\\", "/")
+        project_path = project_path.replace("//", "/")
+
+        # importe path.json to get the path of hython.exe
+        with open(f'{project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/path.json', 'r') as file:
+            jsonPath = json.load(file)
 
         hython_path = jsonPath["software"]["hython"]
 
         # path to the create_asset.py script to be launched with hython
-        python_file_path = project_path + "00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/createUSDAsset/create_asset.py"
-
-        # path to the create_asset.py script to be launched with hython
-        python_file_path = project_path + "00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/createUSDAsset/create_asset.py"
+        python_file_path = f"{project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/createUSDAsset/create_asset.py"
 
         asset_name = str(asset_name)
         to_hython_path = "cd \'" + hython_path.replace("/hython.exe", "") + "\'"
