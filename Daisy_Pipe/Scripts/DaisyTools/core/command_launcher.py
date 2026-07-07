@@ -50,7 +50,6 @@ class Command_launcher(object):
 
         project_path = self.core.projectPath
         project_path = project_path.replace("\\", "/")
-        self.core.popup(f"json_path : {project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/path.json")
 
         # importe path.json to get the path of hython.exe
         with open(f'{project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/path.json', 'r') as file:
@@ -68,8 +67,7 @@ class Command_launcher(object):
 
         # create command line to launch hython with the create_asset.py script and pass the asset name and info as arguments
         command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{asset_path}' --projectPath '{project_path}' "
-        self.core.popup(f"lancement de la commande : {command_line}")
+
         # launch command line in powershell
         subprocess.Popen(command_line)
-        self.core.popup("la commandline s'est lancée")
 
