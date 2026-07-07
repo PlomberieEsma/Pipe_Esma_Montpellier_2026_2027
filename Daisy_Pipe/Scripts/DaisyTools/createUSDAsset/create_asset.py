@@ -623,10 +623,16 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
                 mtl_var_path = mtl_path.replace("Shading", "Shading" + variant.replace("mtl", ""))
 
 
-            ref_mtl = lopnet.createNode("reference")
+            # ref_mtl = lopnet.createNode("reference")
+            # ref_mtl.setName(f"ref_mtl{variant[-1]}")
+            # ref_mtl.setInput(0, begin_var_mtl)
+            # ref_mtl.parm("primpath1").set(root_name)
+            # ref_mtl.parm("filepath1").set(mtl_var_path)
+
+            ref_mtl = lopnet.createNode("sublayer")
             ref_mtl.setName(f"ref_mtl{variant[-1]}")
             ref_mtl.setInput(0, begin_var_mtl)
-            ref_mtl.parm("primpath1").set(root_name)
+            ref_mtl.parm("editrootlayer").set(0)
             ref_mtl.parm("filepath1").set(mtl_var_path)
 
             mtl_var = lopnet.createNode("null")
@@ -649,10 +655,16 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
     
     else:
         if detections["mtl"]["Shading"]:
-            ref_mtl1 = lopnet.createNode("reference")
+            # ref_mtl1 = lopnet.createNode("reference")
+            # ref_mtl1.setName("ref_mtl1")
+            # ref_mtl1.setInput(0, node_input)
+            # ref_mtl1.parm("primpath1").set(root_name)
+            # ref_mtl1.parm("filepath1").set(mtl_path)
+
+            ref_mtl1 = lopnet.createNode("sublayer")
             ref_mtl1.setName("ref_mtl1")
             ref_mtl1.setInput(0, node_input)
-            ref_mtl1.parm("primpath1").set(root_name)
+            ref_mtl1.parm("editrootlayer").set(0)
             ref_mtl1.parm("filepath1").set(mtl_path)
 
             outputs.update({"ref_mtl1" : ref_mtl1})
