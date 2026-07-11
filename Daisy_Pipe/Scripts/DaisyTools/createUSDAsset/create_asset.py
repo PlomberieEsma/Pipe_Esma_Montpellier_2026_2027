@@ -275,6 +275,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
     #-------------------------------------------------------------------#
     # Create nodes for each geo variant                                 #
     # makes a loop to create the nodes for each variant                 #
+    # creates a proxy if it doesn't exist                               #
     # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
@@ -288,6 +289,23 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
     is_geo_variant = var_list["is_variant"]
     geo_variants = var_list["variants"]
 
+# test pour la création de proxy pr les variants
+    # modL_list = []
+    # modH_list = []
+    # tasks = list(tasks_save)
+    # for task in tasks:
+    #     if "ModL" in task:
+    #         modL_list.append(task)
+    #     if "ModH" in task:
+    #         modH_list.append(task)
+    # print(modL_list)
+    # print(modH_list)
+    # for i in range(len(var_list)):
+    #     if modH_list[i] and not modL_list[i]:
+    #         print("il manque une modL sur : " + modL_list[i])
+    #     else:
+    #         print("c'est ok sur : " + modL_list[i])
+    
     lopnet=hou.node("/stage")
 
     if is_geo_variant:
@@ -363,11 +381,51 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
         set_geo_extents.parm("primitives").set(f"{root_name}/* &(%kind:subcomponent + */geo)")
 
     else:
-        ref_geo_prox = lopnet.createNode("reference")
-        ref_geo_prox.setName("ref_geo_prox1")
-        ref_geo_prox.setInput(0, node_input)
-        ref_geo_prox.parm("primpath1").set(f"{root_name}/geo/proxy")
-        ref_geo_prox.parm("filepath1").set(proxy_path)
+        if detect_geo["ModL"]:
+            ref_geo_prox = lopnet.createNode("reference")
+            ref_geo_prox.setName("ref_geo_prox")
+            ref_geo_prox.setInput(0, node_input)
+            ref_geo_prox.parm("primpath1").set(f"{root_name}/geo/proxy")
+            ref_geo_prox.parm("filepath1").set(proxy_path)
+        else:
+            # if there is no modL aviable, we create it with a polyreduce node
+            print("create geometry proxy")
+            ref_geo_prox = lopnet.createNode("subnet")
+            ref_geo_prox.setName("create_geo_prox1")
+            ref_geo_prox.setInput(0, node_input)
+
+            subnet_input = ref_geo_prox.indirectInputs()[0]
+
+            sop_geo_prox1 = ref_geo_prox.createNode("sopnet")
+            sop_geo_prox1.setName("sop_geo_prox1")
+
+            usd_import1 = sop_geo_prox1.createNode("usdimport")
+            usd_import1.setName("usd_import1")
+            usd_import1.parm("filepath1").set(render_path)
+            usd_import1.parm("importtime").set(1)
+            usd_import1.parm("input_unpack").set(1)
+            usd_import1.parm("unpack_geomtype").set(1) #polygons
+
+            polyreduce1 = sop_geo_prox1.createNode("polyreduce")
+            polyreduce1.setName("polyreduce1")
+            polyreduce1.setInput(0, usd_import1)
+            polyreduce1.parm("target").set(2) #output polygone coun
+            polyreduce1.parm("finalcount").set(3000)
+
+            import_sop1 = ref_geo_prox.createNode("sopimport")
+            import_sop1.setName("import_sop1")
+            import_sop1.setInput(0, subnet_input)
+            import_sop1.parm("soppath").set(polyreduce1.path()) #path to polyreduce
+            import_sop1.parm("asreference").set(1)
+            import_sop1.parm("reftype").set("referencestrong") #stronger reference
+            import_sop1.parm("primpath").set(f"{root_name}/geo/proxy")
+            import_sop1.parm("parentprimkind").set("") #none
+            import_sop1.parm("parentprimtype").set("UsdGeomScope") #scope
+            import_sop1.parm("enable_savepath").set(1)
+            import_sop1.parm("savepath").set(f"{env_var_path}/Export/ModL/master/{asset_name}_ModL_master.{usd_file_format}")
+
+            subnet_output = subnet_input.outputs()[0]
+            subnet_output.setInput(0, import_sop1)
 
         config_geo_prox = lopnet.createNode("configureprimitive")
         config_geo_prox.setName("config_geo_prox1")
