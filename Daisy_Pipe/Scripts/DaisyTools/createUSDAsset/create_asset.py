@@ -52,6 +52,7 @@ try:
     parser = argparse.ArgumentParser()
     parser.add_argument("--assetName", type=str, help="name of the asset to be processed")
     parser.add_argument("--path", type=str, help="path of the asset to be processed")
+    parser.add_argument("--assetPath", type=str, help="path of the asset to be processed from 'Assets' to the asset name")
     parser.add_argument("--projectPath", type=str, help="project path of the asset to be processed")
     args = parser.parse_args()
 except:
@@ -65,7 +66,9 @@ except:
 
 
 path = args.path
+asset_path = args.assetPath
 project_path = args.projectPath
+env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
 
 
 
@@ -277,8 +280,8 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
 
 
     root_name = f"/{asset_name}_asset"
-    proxy_path = f"{path}/Export/ModL/master/{asset_name}_ModL_master.{usd_file_format}"
-    render_path = f"{path}/Export/ModH/master/{asset_name}_ModH_master.{usd_file_format}"
+    proxy_path = f"{env_var_path}/Export/ModL/master/{asset_name}_ModL_master.{usd_file_format}"
+    render_path = f"{env_var_path}/Export/ModH/master/{asset_name}_ModH_master.{usd_file_format}"
 
     detect_geo = detections["geo"]
     var_list = variant_list(detect_geo["departement"], detect_geo["str_to_detect"], tasks)
@@ -422,8 +425,8 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
 
 
     root_name = f"/{asset_name}_asset"
-    proxy_path = f"{path}/Export/Groom/master/{asset_name}_Groom_proxy_master.{usd_file_format}"
-    render_path = f"{path}/Export/Groom/master/{asset_name}_Groom_master.{usd_file_format}"
+    proxy_path = f"{env_var_path}/Export/Groom/master/{asset_name}_Groom_proxy_master.{usd_file_format}"
+    render_path = f"{env_var_path}/Export/Groom/master/{asset_name}_Groom_master.{usd_file_format}"
 
     detect_grm = detections["grm"]
     var_list = variant_list(detect_grm["departement"], detect_grm["str_to_detect"], tasks)
@@ -584,8 +587,8 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
 
     root_name = f"/{asset_name}_asset"
-    mtl_path = f"{path}/Export/Shading/master/{asset_name}_Shading_master.{usd_file_format}"
-    mtl_groom_path = f"{path}/Export/ShadingGroom/master/{asset_name}_ShadingGroom_master.{usd_file_format}"
+    mtl_path = f"{env_var_path}/Export/Shading/master/{asset_name}_Shading_master.{usd_file_format}"
+    mtl_groom_path = f"{env_var_path}/Export/ShadingGroom/master/{asset_name}_ShadingGroom_master.{usd_file_format}"
 
     var_mtl_list = variant_list(detections["mtl"]["departement"], detections["mtl"]["str_to_detect"], tasks)
     is_mtl_variant = var_mtl_list["is_variant"]
@@ -782,7 +785,7 @@ def nodes_geo(tasks, asset_name, detetcions):
     config_geo_layer1.setName("config_geo_layer1")
     config_geo_layer1.setInput(0, nodes_var_geo_list["set_geo_extents"])
     config_geo_layer1.parm("setsavepath").set(1)
-    config_geo_layer1.parm("savepath").set(f"{path}/Export/USD/layers/geo.{usd_file_format}")
+    config_geo_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/geo.{usd_file_format}")
     config_geo_layer1.parm("setdefaultprim").set(1)
     config_geo_layer1.parm("defaultprim").set(root_name)
     config_geo_layer1.parm("flattenop").set("layer")# flatten input layers
@@ -829,7 +832,7 @@ def nodes_groom(tasks, asset_name, input_nodes, detections):
     config_grm_layer1.setName("config_grm_layer1")
     config_grm_layer1.setInput(0, nodes_var_grm_list["set_grm_extents"])
     config_grm_layer1.parm("setsavepath").set(1)
-    config_grm_layer1.parm("savepath").set(f"{path}/Export/USD/layers/grm.{usd_file_format}")
+    config_grm_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/grm.{usd_file_format}")
     config_grm_layer1.parm("setdefaultprim").set(1)
     config_grm_layer1.parm("defaultprim").set(root_name)
 
@@ -886,7 +889,7 @@ def nodes_mtl(tasks, asset_name, input_nodes, detections):
         else:
             config_mtl_layer1.setInput(0, nodes_var_mtl_list["outputs"]["ref_mtl_groom1"])
     config_mtl_layer1.parm("setsavepath").set(1)
-    config_mtl_layer1.parm("savepath").set(f"{path}/Export/USD/layers/mtl.{usd_file_format}")
+    config_mtl_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/mtl.{usd_file_format}")
     config_mtl_layer1.parm("setdefaultprim").set(1)
     config_mtl_layer1.parm("defaultprim").set(root_name)
 
@@ -952,7 +955,7 @@ def nodes_payload(asset_name, input_nodes, detections):
     config_payload_layer1.setName("config_payload_layer1")
     config_payload_layer1.setInput(0, config_prims_specifier1)
     config_payload_layer1.parm("setsavepath").set(1)
-    config_payload_layer1.parm("savepath").set(f"{path}/Export/USD/layers/payload.{usd_file_format}")
+    config_payload_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/payload.{usd_file_format}")
     config_payload_layer1.parm("setdefaultprim").set(1)
     config_payload_layer1.parm("defaultprim").set(root_name)
 
@@ -1023,7 +1026,7 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
     asset_info_metadata1.setInput(0, input_nodes["inherit_class1"])
     asset_info_metadata1.parm("primpattern").set("""`chs("../create_component1/primpath")`""")
     asset_info_metadata1.parm("setassetidentifier").set(1)
-    asset_info_metadata1.parm("assetidentifier").set(f"{path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
+    asset_info_metadata1.parm("assetidentifier").set(f"{env_var_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
     asset_info_metadata1.parm("setassetname").set(1)
     asset_info_metadata1.parm("assetname").set(asset_name)
 
@@ -1057,7 +1060,7 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
     usd_rop1 = lopnet.createNode("usd_rop")
     usd_rop1.setName("usd_rop1")
     usd_rop1.setInput(0,set_default_variants1)
-    usd_rop1.parm("lopoutput").set(f"{path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
+    usd_rop1.parm("lopoutput").set(f"{env_var_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
     usd_rop1.parm("filtertimesamples").set("never")# never
     usd_rop1.parm("flattensoplayers").set(1)
 
@@ -1132,8 +1135,8 @@ def nodes_create_asset(tasks, asset_name):
     nodes_list["usd_rop1"].parm("execute").pressButton()
     print("Fin du processus")
 
-    hou.hipFile.save(f"{path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
-    print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/{asset_name}_create_USD_master.hip")
+    hou.hipFile.save(f"{path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
+    print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
 
     elapsed_counter = time.perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
