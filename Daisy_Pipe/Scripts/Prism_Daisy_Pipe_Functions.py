@@ -51,9 +51,10 @@ class Prism_Daisy_Pipe_Functions(object):
         self.Command_launcher = Command_launcher(core, plugin)
         self.AssetBrowserUI = AssetBrowserUI(core, plugin)
         self.core.registerCallback("onProjectBrowserStartup", self.onProjectBrowserStartup, plugin=self)
-        self.core.registerCallback("openPBAssetContextMenu", self.onOpenPBAssetContextMenu, plugin=self)
-        self.core.registerCallback("openPBAssetTaskContextMenu", self.onOpenPBAssetTaskContextMenu, plugin=self)
-        self.core.registerCallback("openPBShotTaskContextMenu", self.onOpenPBShotTaskContextMenu, plugin=self)
+        self.core.registerCallback("openPBAssetContextMenu", self.openPBAssetContextMenu, plugin=self)
+        self.core.registerCallback("openPBAssetTaskContextMenu", self.openPBAssetTaskContextMenu, plugin=self)
+        self.core.registerCallback("openPBShotTaskContextMenu", self.openPBShotTaskContextMenu, plugin=self)
+        self.core.registerCallback("openPBFileContextMenu", self.openPBFileContextMenu, plugin=self)
 
 
         self.core.registerCallback("onStateStartup", self.onStateStartup, plugin=self, priority=40)
@@ -77,17 +78,15 @@ class Prism_Daisy_Pipe_Functions(object):
         # origin.daisyMenu.addAction(onAssetBrowserAction)
         origin.menubar.addMenu(origin.daisyMenu)
 
-
     ##############################################################################################################
     ###########################     SHOT TASK Contextual Menu - Asset Browser     ################################
     ##############################################################################################################
 
-    def onOpenPBShotTaskContextMenu(self, origin, rcMenu, widget):
-        
+    def openPBFileContextMenu (self, origin, rcMenu, widget):
         #-----------------------------------------------------------------------------------#
-        # Create an option "Asset Browser" on the context menu in shots'task                #
+        # Create an option "Asset Browser" on the context menu in shots' files              #
         # Only for SetDress and RLO Tasks                                                   #
-        # When clicked, launch the fAsset Browser UI with the task as argument              #
+        # When clicked, launch the Asset Browser UI with the task as argument               #
         #-----------------------------------------------------------------------------------#
         
         entity = origin.getCurrentEntity()
@@ -103,18 +102,64 @@ class Prism_Daisy_Pipe_Functions(object):
 
             # Check existing tasks and their names
             existingTasks = self.core.entities.getCategories(entity, step=department)
-            # self.core.popup("Tasks trouvées: %s" % existingTasks)
 
             if "SetDress" in existingTasks:
-                openAssetBrowserAction = QAction( "AssetBrowser", origin)
+                task = "SetDress"
+            elif "RLO" in existingTasks:
+                task = "RLO"
+            else:
+                return
+
+            openAssetBrowserAction = QAction("Houdini Layout Scene", origin)
+            openAssetBrowserAction.triggered.connect(
+                lambda: self.onAssetBrowser(origin, task=task)
+            )
+
+            # Recherche du sous-menu "Create new version from preset"
+            presetMenu = None
+            for act in rcMenu.actions():
+                if act.menu() and act.text() == self.core.tr("Create new version from preset"):
+                    presetMenu = act.menu()
+                    break
+
+            if presetMenu:
+                presetMenu.addAction(openAssetBrowserAction)
+            else:
+                # fallback si le sous-menu n'existe pas (ex: pas de presets configurés)
+                rcMenu.addAction(openAssetBrowserAction) 
+
+    def openPBShotTaskContextMenu(self, origin, rcMenu, widget):
+    
+        #-----------------------------------------------------------------------------------#
+        # Create an option "Asset Browser" on the context menu in shots' files              #
+        # Only for SetDress and RLO Tasks                                                   #
+        # When clicked, launch the Asset Browser UI with the task as argument               #
+        #-----------------------------------------------------------------------------------#
+        
+        entity = origin.getCurrentEntity()
+        widgetType = "department" if widget == origin.lw_departments else "task"
+
+        if entity or entity["type"] in ["shot", "sequence"] and widgetType == "task":
+            
+            # Check the department
+            deptItem = origin.lw_departments.currentItem()
+            if not deptItem:
+                return
+            department = deptItem.data(Qt.UserRole)
+
+            # Check existing tasks and their names
+            existingTasks = self.core.entities.getCategories(entity, step=department)
+
+            if "SetDress" in existingTasks:
+                openAssetBrowserAction = QAction("AssetBrowser", origin)
                 openAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin, task="SetDress"))
                 rcMenu.addAction(openAssetBrowserAction)
             elif "RLO" in existingTasks:
-                openAssetBrowserAction = QAction( "AssetBrowser", origin)
+                openAssetBrowserAction = QAction("AssetBrowser", origin)
                 openAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin, task="RLO"))
                 rcMenu.addAction(openAssetBrowserAction)
             else:
-                return        
+                return      
 
     def onAssetBrowser(self, origin, task=None):
         
@@ -130,7 +175,7 @@ class Prism_Daisy_Pipe_Functions(object):
     ###########################     ASSET Contextual Menu - Create USD      ######################################
     ##############################################################################################################
 
-    def onOpenPBAssetContextMenu(self, origin, rcMenu, asset):
+    def openPBAssetContextMenu(self, origin, rcMenu, asset):
         
         #-----------------------------------------------------------------------------------#
         # Add an option "CreateUSD Asset" to the context menu for assets                    #
@@ -168,7 +213,7 @@ class Prism_Daisy_Pipe_Functions(object):
     ###########################     ASSET TASK Contextual Menu - Variant     #####################################
     ##############################################################################################################
 
-    def onOpenPBAssetTaskContextMenu(self, origin, rcMenu, widget):
+    def openPBAssetTaskContextMenu(self, origin, rcMenu, widget):
         
         #-----------------------------------------------------------------------------------#
         # Create a submenu "Add Variants" to the context menu for assets' task              #
