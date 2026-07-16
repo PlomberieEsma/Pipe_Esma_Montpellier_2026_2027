@@ -133,7 +133,7 @@ class AssetBrowserUI(object):
                 # Check if the Asset Browser will be in SetDress View or RLO View
                 # self.core.popup("RLO task detected.")
 
-                # TOP RIGHT COLUMN : SetDress selected
+                # TOP RIGHT COLUMN : Shot SetDress
                 self.gb_setDress = QGroupBox("Shot SetDress")
                 lo_setDress = QHBoxLayout()
                 self.gb_setDress.setLayout(lo_setDress)
@@ -160,11 +160,16 @@ class AssetBrowserUI(object):
                 lo_masterSetDress.addStretch()
                 lo_setDress.addLayout(lo_masterSetDress)
 
-                # Remplissage avec les vraies données
+                # # Remplissage avec les vraies données
                 thumbnailPath = self.getMasterSetDressThumbnail(entity)
                 targetPath = self.getMasterSetDress(entity)
 
-                self.lbl_setDressPath.setText(targetPath if targetPath else "Aucun fichier trouvé")
+                if targetPath:
+                    self.lbl_setDressPath.setText("SetDress found")
+                    self.lbl_setDressPath.setToolTip(f"<span>{targetPath}</span>")
+                else:
+                    self.lbl_setDressPath.setText("No SetDress USD file found")
+                    self.lbl_setDressPath.setToolTip("")
 
                 if thumbnailPath and os.path.isfile(thumbnailPath):
                     pixmap = QPixmap(thumbnailPath)
@@ -172,18 +177,6 @@ class AssetBrowserUI(object):
                 else:
                     self.lbl_setDressThumbnail.setText("N/A")
                     self.lbl_setDressThumbnail.setAlignment(Qt.AlignCenter)
-
-
-
-
-
-
-
-
-
-
-                self.lw_setDress = SelectedAssetsList(self)
-                lo_setDress.addWidget(self.lw_setDress)
 
                 rightColumnLayout.addWidget(self.gb_setDress)
                 self.gb_setDress.setFixedHeight(100)
@@ -286,13 +279,17 @@ class AssetBrowserUI(object):
         # Output the list of selected asset in the Asset Browser with their path as a dictionary  #
         #-----------------------------------------------------------------------------------------#
 
-        output = {}
+        output = []
         for entity in self.selectedAssetsData.values():
             name = entity.get("asset", "")
             path = entity.get("paths", "")
-            output[name] = path
-            self.core.popup(f"Selected Asset: {name} with path: {path}")
+            output.append({"name": name, "path": path})
+
+        # Check the output before creating the scene
+        self.core.popup(f"Selected assets: {output}")
+        self.assetBrowserDlg.hide()
         return output
+        
     
     def getMasterSetDress(self, entity):
         #-----------------------------------------------------------------------------------#
@@ -301,15 +298,14 @@ class AssetBrowserUI(object):
 
         # Redirecting toward the master SetDress file
         sequence = entity.get("sequence", "") if entity else ""
-        targetFile = f"{sequence}_MASTER_master.usda"
+        targetFile = f"{sequence}_SetDress_master.usda"
         shotPath = self.core.getEntityPath(entity)
 
         seqFolder = os.path.dirname(shotPath)
         targetPath = os.path.join(seqFolder, "MASTER/Export/SetDress/master", targetFile)
         targetPath = os.path.normpath(targetPath)
-        self.core.popup(targetPath)
 
-        return targetPath
+        return targetPath if os.path.isfile(targetPath) else None
     
     def getMasterSetDressThumbnail(self, entity):
         #-----------------------------------------------------------------------------------#
@@ -323,12 +319,15 @@ class AssetBrowserUI(object):
             os.path.join(shotPath, "Scenefiles/01_setDress/SetDress/")
         )
 
+    
+
         if not os.path.isdir(setDressFolder):
             return None
 
         # Scan manuel du dossier pour trouver la dernière version
         pattern = re.compile(rf"{re.escape(sequence)}_SetDress_v(\d+)preview\.jpg", re.IGNORECASE)
 
+        self.core.popup("still here")
         matches = []
         for fname in os.listdir(setDressFolder):
             m = pattern.match(fname)
@@ -338,12 +337,12 @@ class AssetBrowserUI(object):
 
         if not matches:
             return None
-
+        self.core.popup("working here")
         matches.sort(key=lambda x: x[0])
         latestVersion, latestFile = matches[-1]
         previewPath = os.path.join(setDressFolder, latestFile)
         previewPath = os.path.normpath(previewPath)
 
-        return previewPath if os.path.isfile(previewPath) else None
+        self.core.popup(previewPath)
 
-        
+        return previewPath if os.path.isfile(previewPath) else None
