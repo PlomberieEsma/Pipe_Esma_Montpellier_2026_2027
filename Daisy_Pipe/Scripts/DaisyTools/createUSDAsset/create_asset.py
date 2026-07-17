@@ -36,7 +36,7 @@ try:
 except:
     print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
 
-# needs to be launched in hython or houdini, otherwise it will not work
+# needs to be launched in hython by using prism, otherwise it will not work
 
 
 class Error(Exception):
@@ -74,6 +74,7 @@ env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
 
 tasks = os.listdir(f"{path}/Export")
 tasks_save = list(tasks)
+variant_digit_number = 2
 usd_file_format = "usda"
 print("\n\n--------------------------------------------------------------------------------------------------\n\n")
 print(f"tasks : {tasks}")
@@ -275,7 +276,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
     #-------------------------------------------------------------------#
     # Create nodes for each geo variant                                 #
     # makes a loop to create the nodes for each variant                 #
-    # creates a proxy if it doesn't exist                               #
+    # creates an automatic proxy if it doesn't exist                    #
     # return the list of all created nodes                              #
     #-------------------------------------------------------------------#
 
@@ -289,23 +290,34 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
     is_geo_variant = var_list["is_variant"]
     geo_variants = var_list["variants"]
 
-# test pour la création de proxy pr les variants
-    # modL_list = []
-    # modH_list = []
-    # tasks = list(tasks_save)
-    # for task in tasks:
-    #     if "ModL" in task:
-    #         modL_list.append(task)
-    #     if "ModH" in task:
-    #         modH_list.append(task)
-    # print(modL_list)
-    # print(modH_list)
-    # for i in range(len(var_list)):
-    #     if modH_list[i] and not modL_list[i]:
-    #         print("il manque une modL sur : " + modL_list[i])
-    #     else:
-    #         print("c'est ok sur : " + modL_list[i])
+    # create two lists for ModL and ModH, and check if they have the same number of variants
+    modL_list = []
+    modH_list = []
+    tasks = list(tasks_save)
+    for task in tasks:
+        if "ModL" in task:
+            modL_list.append(task.replace("ModL", "ModL_var01") if task == "ModL" else task)
+        if "ModH" in task:
+            modH_list.append(task.replace("ModH", "ModH_var01") if task == "ModH" else task)
+
+    compteur = len(modL_list) if len(modL_list)>len(modH_list) else len(modH_list)
     
+    # check if the two lists have the same number of variants, if not, add None to the list with less variants
+    for i in range(compteur):
+        try:
+            if int(modH_list[i][-variant_digit_number:]) < int(modL_list[i][-variant_digit_number:]):
+                modL_list.insert(i, None)
+            elif int(modH_list[i][-variant_digit_number:]) > int(modL_list[i][-variant_digit_number:]):
+                modH_list.insert(i, None)
+            else:
+                print("ok for : " + modL_list[i])
+        except IndexError:
+            if len(modH_list) > len(modL_list):
+                modL_list.append(None)
+            else:
+                modH_list.append(None)
+
+
     lopnet=hou.node("/stage")
 
     if is_geo_variant:
@@ -320,14 +332,54 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
             if variant != "geo_var01":
                 render_var_path = render_path.replace("ModH", "ModH" + variant.replace("geo", ""))
 
-            ref_geo_prox = lopnet.createNode("reference")
-            ref_geo_prox.setName("ref_geo_prox" + variant[-1])
-            ref_geo_prox.setInput(0, node_input)
-            ref_geo_prox.parm("primpath1").set(f"{root_name}/geo/proxy")
-            ref_geo_prox.parm("filepath1").set(proxy_var_path)
+            if modL_list[int(variant[-variant_digit_number:])-1] is not None:
+                ref_geo_prox = lopnet.createNode("reference")
+                ref_geo_prox.setName("ref_geo_prox" + variant[-variant_digit_number:])
+                ref_geo_prox.setInput(0, node_input)
+                ref_geo_prox.parm("primpath1").set(f"{root_name}/geo/proxy")
+                ref_geo_prox.parm("filepath1").set(proxy_var_path)
+            else:
+                # if there is no modL aviable, we create it with a polyreduce node
+                print("create geometry proxy for : " + variant)
+                ref_geo_prox = lopnet.createNode("subnet")
+                ref_geo_prox.setName("create_geo_prox" + variant[-variant_digit_number:])
+                ref_geo_prox.setInput(0, node_input)
+
+                subnet_input = ref_geo_prox.indirectInputs()[0]
+
+                sop_geo_prox1 = ref_geo_prox.createNode("sopnet")
+                sop_geo_prox1.setName("sop_geo_prox1")
+
+                usd_import1 = sop_geo_prox1.createNode("usdimport")
+                usd_import1.setName("usd_import" + variant[-variant_digit_number:])
+                usd_import1.parm("filepath1").set(render_path)
+                usd_import1.parm("importtime").set(1.0)
+                usd_import1.parm("input_unpack").set(1)
+                usd_import1.parm("unpack_geomtype").set(1) #polygons
+
+                polyreduce1 = sop_geo_prox1.createNode("polyreduce")
+                polyreduce1.setName("polyreduce" + variant[-variant_digit_number:])
+                polyreduce1.setInput(0, usd_import1)
+                polyreduce1.parm("target").set(2) #output polygone coun
+                polyreduce1.parm("finalcount").set(3000)
+
+                import_sop1 = ref_geo_prox.createNode("sopimport")
+                import_sop1.setName("import_sop" + variant[-variant_digit_number:])
+                import_sop1.setInput(0, subnet_input)
+                import_sop1.parm("soppath").set(polyreduce1.path()) #path to polyreduce
+                import_sop1.parm("asreference").set(1)
+                import_sop1.parm("reftype").set("referencestrong") #stronger reference
+                import_sop1.parm("primpath").set(f"{root_name}/geo/proxy")
+                import_sop1.parm("parentprimkind").set("") #none
+                import_sop1.parm("parentprimtype").set("UsdGeomScope") #scope
+                import_sop1.parm("enable_savepath").set(1)
+                import_sop1.parm("savepath").set(f"{env_var_path}/Export/ModL_var{variant[-variant_digit_number:]}/master/{asset_name}_ModL_var{variant[-variant_digit_number:]}_master.{usd_file_format}")
+
+                subnet_output = subnet_input.outputs()[0]
+                subnet_output.setInput(0, import_sop1)
 
             config_geo_prox = lopnet.createNode("configureprimitive")
-            config_geo_prox.setName(f"config_geo_prox{variant[-1]}")
+            config_geo_prox.setName(f"config_geo_prox{variant[-variant_digit_number:]}")
             config_geo_prox.setInput(0, ref_geo_prox)
             config_geo_prox.parm("primpattern").set(f"{root_name}/geo/proxy")
             config_geo_prox.parm("setpurpose").set(1)
@@ -335,13 +387,13 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
             config_geo_prox.parm("setkind").set(1)
 
             ref_geo_render = lopnet.createNode("reference")
-            ref_geo_render.setName(f"ref_geo_render{variant[-1]}")
+            ref_geo_render.setName(f"ref_geo_render{variant[-variant_digit_number:]}")
             ref_geo_render.setInput(0, node_input)
             ref_geo_render.parm("primpath1").set(f"{root_name}/geo/render")
             ref_geo_render.parm("filepath1").set(render_var_path)
 
             config_geo_render = lopnet.createNode("configureprimitive")
-            config_geo_render.setName(f"config_geo_render{variant[-1]}")
+            config_geo_render.setName(f"config_geo_render{variant[-variant_digit_number:]}")
             config_geo_render.setInput(0, ref_geo_render)
             config_geo_render.parm("primpattern").set(f"{root_name}/geo/render")
             config_geo_render.parm("setpurpose").set(1)
@@ -351,7 +403,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
             config_geo_render.parm("setkind").set(1)
 
             graft_geo_purpose = lopnet.createNode("graftbranches")
-            graft_geo_purpose.setName(f"graft_geo_purpose{variant[-1]}")
+            graft_geo_purpose.setName(f"graft_geo_purpose{variant[-variant_digit_number:]}")
             graft_geo_purpose.setInput(0, config_geo_prox)
             graft_geo_purpose.setInput(1, config_geo_render)
             graft_geo_purpose.parm("primpath").set(f"{root_name}/geo/render")
@@ -402,7 +454,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
             usd_import1 = sop_geo_prox1.createNode("usdimport")
             usd_import1.setName("usd_import1")
             usd_import1.parm("filepath1").set(render_path)
-            usd_import1.parm("importtime").set(1)
+            usd_import1.parm("importtime").set(1.0)
             usd_import1.parm("input_unpack").set(1)
             usd_import1.parm("unpack_geomtype").set(1) #polygons
 
@@ -517,13 +569,13 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
 
 
             ref_grm_prox = lopnet.createNode("reference")
-            ref_grm_prox.setName(f"ref_grm_prox{variant[-1]}")
+            ref_grm_prox.setName(f"ref_grm_prox{variant[-variant_digit_number:]}")
             ref_grm_prox.setInput(0, begin_var_grm)
             ref_grm_prox.parm("primpath1").set(f"{root_name}/grm/proxy")
             ref_grm_prox.parm("filepath1").set(proxy_var_path)
 
             config_grm_prox = lopnet.createNode("configureprimitive")
-            config_grm_prox.setName(f"config_grm_prox{variant[-1]}")
+            config_grm_prox.setName(f"config_grm_prox{variant[-variant_digit_number:]}")
             config_grm_prox.setInput(0, ref_grm_prox)
             config_grm_prox.parm("primpattern").set(f"{root_name}/grm/proxy")
             config_grm_prox.parm("setpurpose").set(1)
@@ -531,13 +583,13 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
             config_grm_prox.parm("setkind").set(1)
 
             ref_grm_render = lopnet.createNode("reference")
-            ref_grm_render.setName(f"ref_grm_render{variant[-1]}")
+            ref_grm_render.setName(f"ref_grm_render{variant[-variant_digit_number:]}")
             ref_grm_render.setInput(0, begin_var_grm)
             ref_grm_render.parm("primpath1").set(f"{root_name}/grm/render")
             ref_grm_render.parm("filepath1").set(render_var_path)
 
             config_grm_render = lopnet.createNode("configureprimitive")
-            config_grm_render.setName(f"config_grm_render{variant[-1]}")
+            config_grm_render.setName(f"config_grm_render{variant[-variant_digit_number:]}")
             config_grm_render.setInput(0, ref_grm_render)
             config_grm_render.parm("primpattern").set(f"{root_name}/grm/render")
             config_grm_render.parm("setpurpose").set(1)
@@ -547,7 +599,7 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
             config_grm_render.parm("setkind").set(1)
 
             graft_grm_purpose = lopnet.createNode("graftbranches")
-            graft_grm_purpose.setName(f"graft_grm_purpose{variant[-1]}")
+            graft_grm_purpose.setName(f"graft_grm_purpose{variant[-variant_digit_number:]}")
             graft_grm_purpose.setInput(0, config_grm_prox)
             graft_grm_purpose.setInput(1, config_grm_render)
             graft_grm_purpose.parm("primpath").set(f"{root_name}/grm/render")
@@ -662,8 +714,6 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
     lopnet=hou.node("/stage")
 
     begin_var_mtl = None
-    add_mtl_var = None
-
     outputs = {}
 
     if is_mtl_variant:
@@ -683,15 +733,8 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
             if variant != "mtl_var01":
                 mtl_var_path = mtl_path.replace("Shading", "Shading" + variant.replace("mtl", ""))
 
-
-            # ref_mtl = lopnet.createNode("reference")
-            # ref_mtl.setName(f"ref_mtl{variant[-1]}")
-            # ref_mtl.setInput(0, begin_var_mtl)
-            # ref_mtl.parm("primpath1").set(root_name)
-            # ref_mtl.parm("filepath1").set(mtl_var_path)
-
             ref_mtl = lopnet.createNode("sublayer")
-            ref_mtl.setName(f"ref_mtl{variant[-1]}")
+            ref_mtl.setName(f"ref_mtl{variant[-variant_digit_number:]}")
             ref_mtl.setInput(0, begin_var_mtl)
             ref_mtl.parm("editrootlayer").set(0)
             ref_mtl.parm("filepath1").set(mtl_var_path)
@@ -716,12 +759,6 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
     
     else:
         if detections["mtl"]["Shading"]:
-            # ref_mtl1 = lopnet.createNode("reference")
-            # ref_mtl1.setName("ref_mtl1")
-            # ref_mtl1.setInput(0, node_input)
-            # ref_mtl1.parm("primpath1").set(root_name)
-            # ref_mtl1.parm("filepath1").set(mtl_path)
-
             ref_mtl1 = lopnet.createNode("sublayer")
             ref_mtl1.setName("ref_mtl1")
             ref_mtl1.setInput(0, node_input)
@@ -750,7 +787,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
 
             ref_mtl_groom = lopnet.createNode("reference")
-            ref_mtl_groom.setName(f"ref_mtl_groom{variant[-1]}")
+            ref_mtl_groom.setName(f"ref_mtl_groom{variant[-variant_digit_number:]}")
             ref_mtl_groom.setInput(0, begin_var_mtl_groom)
             ref_mtl_groom.parm("primpath1").set(root_name)
             ref_mtl_groom.parm("filepath1").set(mtl_groom_var_path)
