@@ -50,7 +50,6 @@ class Command_launcher(object):
 
         project_path = self.core.projectPath
         project_path = project_path.replace("\\", "/")
-        project_path = project_path.replace("//", "/")
 
         # importe path.json to get the path of hython.exe
         with open(f'{project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/path.json', 'r') as file:
@@ -64,10 +63,13 @@ class Command_launcher(object):
         asset_name = str(asset_name)
         to_hython_path = "cd \'" + hython_path.replace("/hython.exe", "") + "\'"
 
-        asset_path = self.core.paths.getEntityPath(entity=current_entity)
+        asset_path = current_entity["asset_path"]
+        asset_path = asset_path.replace("\\", "/")
+
+        path_to_asset = self.core.paths.getEntityPath(entity=current_entity)
 
         # create command line to launch hython with the create_asset.py script and pass the asset name and info as arguments
-        command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{asset_path}' --projectPath '{project_path}' "
+        command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{path_to_asset}' --assetPath '{asset_path}' --projectPath '{project_path}' "
 
         # launch command line in powershell
         subprocess.Popen(command_line)
