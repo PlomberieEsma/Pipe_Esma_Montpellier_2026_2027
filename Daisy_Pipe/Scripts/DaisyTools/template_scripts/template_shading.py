@@ -24,6 +24,53 @@
 #   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
 #   art by Joan G. Stark (Spunk)
 
+
+#import modules
+import hou, time
+from Scripts.DaisyTools.core.core import get_core
+from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+
+print("execute template_shading.py\n\n")
+
+# title
+try:
+    from Scripts.DaisyTools.core.ascii_art import print_title
+    print_title()
+except:
+    print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
+
+
+
+class Error(Exception):
+    # use to raise errors in the script
+    pass
+
+##########################################################################################################################################
+#=========================================================== SET VARIABLES ===============================================================
+##########################################################################################################################################
+
+usd_file_format = "usda"
+
+core = get_core()
+info = get_entity_info()
+
+asset_name = info["name"]
+asset_entity = info["entity"]
+asset_path = asset_entity['asset_path'].replace("\\", "/")
+asset_task = info["task"]
+asset_version = core.products.getNextAvailableVersion(entity=asset_entity, product=asset_task)
+
+env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
+
+node_position = [0,0]
+color_input_box = [0.33, 0.18, 0.44]
+color_material_box = [0.7, 0.79, 0.72]
+color_output_box = [0.86, 0.85, 0.72]
+
+##########################################################################################################################################
+#=========================================================== SET FUNCTIONS ===============================================================
+##########################################################################################################################################
+
 def template_shading():
 
     #-------------------------------------------------------------------------------#
@@ -31,29 +78,7 @@ def template_shading():
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
-    #----------------------------------- imports -----------------------------------#
-    import hou
-
-    from Scripts.DaisyTools.core.core import get_core
-    from Scripts.DaisyTools.core.get_entity_info import get_entity_info
-
-
-    #-------------------------------- set variables --------------------------------#
-    usd_file_format = "usda"
-    
-    core = get_core()
-    info = get_entity_info()
-
-    asset_path = info["path"]
-    asset_name = info["name"]
-    asset_entity = info["entity"]
-    asset_task = info["task"]
-    asset_version = core.products.getNextAvailableVersion(entity=asset_entity, product=asset_task)
-    import_path = f"{asset_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}"
-    path_til_task = core.products.getProductPathFromEntity(entity=asset_entity, includeProduct=False)
-    export_path = f"{path_til_task}\\{asset_task}\\{asset_version}\\{asset_name}_{asset_task}_{asset_version}.{usd_file_format}"
-    node_position = [0,0]
-
+    start_counter = time.perf_counter()
 
     #-------------------------------- create nodes ---------------------------------#
     lopnet=hou.node("/stage")
@@ -63,7 +88,7 @@ def template_shading():
     ref_geo1.setPosition(node_position)
     ref_geo1.parm("enable").set(0) #disable multi-input
     ref_geo1.parm("primpath1").set("/`pythonexprs(\"__import__('pxr').Sdf.Layer.FindOrOpen(hou.pwd().evalParm('filepath1')).defaultPrim\")`") #re1ferenced file's default primitive
-    ref_geo1.parm("filepath1").set(import_path)
+    ref_geo1.parm("filepath1").set(f"{env_var_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
     ref_geo1.parm("filerefprim1").set("") #reference specific primitive
     ref_geo1.parm("filerefprimpath1").set("`chs(\"primpath1\")`")
 
@@ -81,6 +106,7 @@ def template_shading():
     layer_break1 = lopnet.createNode("layerbreak")
     layer_break1.setName("layer_break1")
     layer_break1.setInput(0, set_variant1)
+    layer_break1.setColor(hou.Color(color_input_box))
     node_position[1] -= 1
     layer_break1.move(node_position)
 
@@ -94,6 +120,7 @@ def template_shading():
     create_component1 = lopnet.createNode("primitive")
     create_component1.setName("create_component1")
     create_component1.setInput(0, scale_down1)
+    create_component1.setColor(hou.Color(color_input_box))
     node_position[1] -= 1
     create_component1.move(node_position)
     create_component1.parm("primpath").set("/`lopinputprims('.', 0)`")
@@ -101,7 +128,8 @@ def template_shading():
 
     create_mtl1 = lopnet.createNode("primitive")
     create_mtl1.setName("create_mtl1")
-    create_mtl1.setInput(0, scale_down1)
+    create_mtl1.setInput(0, create_component1)
+    create_mtl1.setColor(hou.Color(color_input_box))
     node_position[1] -= 1
     create_mtl1.move(node_position)
     create_mtl1.parm("primpath").set("/`chs(\"../create_component1/primpath\")`/mtl")
@@ -120,7 +148,7 @@ def template_shading():
     configure_mtl_primitives1.setInput(0, create_shader1)
     node_position[1] -= 2
     configure_mtl_primitives1.move(node_position)
-    configure_mtl_primitives1.setColor(hou.Color((0.3,0.3,0.3)))
+    configure_mtl_primitives1.setColor(hou.Color(list(map(lambda x: x - 0.2 ,color_material_box))))
     configure_mtl_primitives1.parm("primpattern").set("/`chs(\"../create_component1/primpath\")`/mtl/*")
     configure_mtl_primitives1.parm("settype").set(1)
     configure_mtl_primitives1.parm("type").set("UsdShadeMaterial") #material
@@ -146,7 +174,7 @@ def template_shading():
     node_position[1] -= 1
     config_mtl_layer1.move(node_position)
     config_mtl_layer1.parm("setsavepath").set(1)
-    config_mtl_layer1.parm("savepath").set(export_path)
+    config_mtl_layer1.parm("savepath").set(f"{env_var_path}/Export/{asset_task}/{asset_version}/{asset_name}_{asset_task}_{asset_version}.{usd_file_format}")
     config_mtl_layer1.parm("setdefaultprim").set(1)
     config_mtl_layer1.parm("defaultprim").set("/`chs(\"../create_component1/primpath\")`")
 
@@ -159,7 +187,7 @@ def template_shading():
     usd_rop1.parm("postrender").set("$PRISMJOB/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/saveas/create_version_info.py")
     usd_rop1.parm("lpostrender").set("python")
 
-    output = {"ref_geo1" : ref_geo1,
+    node_list = {"ref_geo1" : ref_geo1,
               "set_variant1" : set_variant1,
               "layer_break1" : layer_break1,
               "scale_down1" : scale_down1,
@@ -171,8 +199,52 @@ def template_shading():
               "scale_up1" : scale_up1,
               "config_mtl_layer1" : config_mtl_layer1,
               "usd_rop1" : usd_rop1}
-    return output
+    
+    #-------------------------------- arange nodes ---------------------------------#
+    # set input network box
+    nodes_in_input_box = ["ref_geo1", "set_variant1", "layer_break1", "scale_down1", "create_component1", "create_mtl1"]
+    input_box = lopnet.createNetworkBox()
+    for node in nodes_in_input_box:
+        input_box.addItem(node_list[node])
+    input_box.setColor(hou.Color(color_input_box))
+    input_box.setComment("Inputs")
+    input_box.fitAroundContents()
+    input_box.setBounds(hou.BoundingRect(input_box.position()[0]-1, input_box.position()[1], input_box.position()[0]+input_box.size()[0]+3, input_box.position()[1]+input_box.size()[1]))
+
+    # set mtl network box
+    nodes_in_material_box = ["create_shader1", "configure_mtl_primitives1", "assign_shader1"]
+    material_box = lopnet.createNetworkBox()
+    for node in nodes_in_material_box:
+        material_box.addItem(node_list[node])
+    material_box.setColor(hou.Color(color_material_box))
+    material_box.setComment("Material")
+    material_box.fitAroundContents()
+    material_box.setBounds(hou.BoundingRect(material_box.position()[0]-1, material_box.position()[1], material_box.position()[0]+material_box.size()[0]+3, material_box.position()[1]+material_box.size()[1]))
+
+    # set output network box
+    nodes_in_output_box = ["scale_up1", "config_mtl_layer1", "usd_rop1"]
+    output_box = lopnet.createNetworkBox()
+    for node in nodes_in_output_box:
+        output_box.addItem(node_list[node])
+    output_box.setColor(hou.Color(color_output_box))
+    output_box.setComment("Outputs")
+    output_box.fitAroundContents()
+    output_box.setBounds(hou.BoundingRect(output_box.position()[0]-1, output_box.position()[1], output_box.position()[0]+output_box.size()[0]+3, output_box.position()[1]+output_box.size()[1]))
+
+    node_list.update({"input_box" : input_box,
+                      "material_box" : material_box,
+                      "output_box" : output_box})
 
 
+
+    elapsed_counter = time.perf_counter() - start_counter
+    print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
+
+    return node_list
+
+
+##########################################################################################################################################
+#=========================================================== CALL FUNCTIONS ==============================================================
+##########################################################################################################################################
 
 template_shading()
