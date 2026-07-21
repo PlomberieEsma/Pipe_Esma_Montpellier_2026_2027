@@ -1,7 +1,7 @@
 def setup_geo(default_prim=""):
     # pyrefly: ignore [missing-import]
     import maya.cmds as cmds
-    from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+    from DaisyTools.core.get_entity_info import get_entity_info
     
     cmds.select(cl=True)
     
