@@ -1,4 +1,4 @@
-from Scripts.DaisyTools.core.core import get_core
+from DaisyTools.core.core import get_core
 
 def get_entity_info():
     
