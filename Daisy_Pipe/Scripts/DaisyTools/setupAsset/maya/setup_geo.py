@@ -15,7 +15,7 @@ def setup_geo(default_prim=""):
     task = info["task"]
     
     master_name = default_prim
-    geo_name = "geo"
+    geo_name = f"{default_prim}_geo"
 
     if etype == "asset" and dept == "02_mod": 
         #Find or create master group
@@ -69,8 +69,9 @@ def setup_geo(default_prim=""):
 def geo_is_complete(master_grp):
     # pyrefly: ignore [missing-import]
     import maya.cmds as cmds
-    
-    geo_grp = f"{master_grp}|geo"
+
+    entity_name = master_grp.rsplit("|", 1)[-1]
+    geo_grp = f"{master_grp}|{entity_name}_geo"
     if not cmds.objExists(geo_grp):
         return False
     

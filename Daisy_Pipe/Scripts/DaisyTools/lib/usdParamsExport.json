@@ -28,7 +28,7 @@
             "exportVisibility": true,
             "mergeTransformAndShape": true,
             "includeEmptyTransforms": true,
-            "stripNamespaces": false,
+            "stripNamespaces": true,
             "worldspace": false,
             "exportStagesAsRefs": true
 
@@ -39,7 +39,7 @@
             "exportVisibility": true,
             "mergeTransformAndShape": true,
             "includeEmptyTransforms": true,
-            "stripNamespaces": false,
+            "stripNamespaces": true,
             "worldspace": false,
             "exportStagesAsRefs": true
         }

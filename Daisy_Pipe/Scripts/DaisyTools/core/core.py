@@ -76,7 +76,7 @@ SUBDIVISION_METHOD_MAP = {
 }
 
 
-def write_usd(preset_name, file_path, default_prim="", selection_only=True, overrides=None, frame_range=None):
+def write_usd(preset_name, file_path, default_prim="", selection_only=True, overrides=None, frame_range=None, is_shot=False):
 
     #Write usd using mayaUsdPlugin if launched inside maya
     #overrides: dict of extra/override mayaUSDExport flags (e.g. from the state UI)
@@ -119,7 +119,7 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True, over
             else:
                 master_grp = "|" + default_prim
 
-            geo_set_name = default_prim + "_geo"
+            geo_set_name = default_prim + "_geoSet"
             existing_set = cmds.objExists(geo_set_name) and cmds.nodeType(geo_set_name) == "objectSet"
 
             if selection_only and existing_set:
@@ -135,12 +135,14 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True, over
                         "Aucune géométrie sélectionnée : sélectionne les nœuds à "
                         "exporter avant de lancer l'export USD."
                     )
-                #no set yet: build it from the geo added to the Maya Objects list, for reuse next time
-                create_selection_set(selection, geo_set_name)
+                if not is_shot:
+                    #no set yet: build it from the geo added to the Maya Objects list, for reuse next time
+                    create_selection_set(selection, geo_set_name)
             else:
                 cmds.select(master_grp)
                 selection = [master_grp]
-                create_selection_set(selection, geo_set_name)
+                if not is_shot:
+                    create_selection_set(selection, geo_set_name)
 
         else:
             #generic departments: no dedicated geo hierarchy, just export whatever is selected
@@ -155,13 +157,20 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True, over
                 group_path = find_or_create_entity_group(default_prim)
                 cmds.select(group_path, replace=True)
 
+        # namespaces must never be baked into exported USD prim paths, for
+        # either assets or shots - enforce this unconditionally regardless
+        # of preset
+        config["stripNamespaces"] = True
+
         cmds.mayaUSDExport(**config)
 
-def create_master(file_path, master_path, default_prim=""):
-    
+def create_master(file_path, master_path, default_prim="", frame_range=None):
+
     #Create a master usd file with sublayer pointing to the lastest version of the entity usd file
 
     from pxr import Usd, Sdf #import Usd and Sdf library from Pxr
+
+    start_frame, end_frame = frame_range if frame_range else (1, 1)
 
     if not os.path.exists(master_path): #check if master usd file already exists if not we create it
 
@@ -169,8 +178,8 @@ def create_master(file_path, master_path, default_prim=""):
         root_layer = master_stage.GetRootLayer() #get root layer of master usd file
 
         root_layer.defaultPrim = default_prim #set default prim
-        root_layer.startTimeCode = 1 #set start time code
-        root_layer.endTimeCode = 1 #set end time code
+        root_layer.startTimeCode = start_frame #set start time code
+        root_layer.endTimeCode = end_frame #set end time code
         master_stage.SetMetadata("metersPerUnit", 0.01) #set meters per unit
 
         root_layer.subLayerPaths.append(file_path) #append file path to sublayer paths
@@ -179,11 +188,14 @@ def create_master(file_path, master_path, default_prim=""):
 
         print(f"Fichier créé : {master_path}")
 
-    else: #if master usd file already exists we update the sublayer paths
+    else: #if master usd file already exists we update the sublayer paths and framerange
         layer = Sdf.Layer.FindOrOpen(master_path) #find master usd file
 
         layer.subLayerPaths.clear() #clear sublayer paths
         layer.subLayerPaths.append(file_path) #append file path to sublayer paths
+
+        layer.startTimeCode = start_frame #keep the framerange in sync with the current export
+        layer.endTimeCode = end_frame
 
         layer.Save() #save master usd file
 

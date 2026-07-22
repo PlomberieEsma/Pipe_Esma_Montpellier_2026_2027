@@ -1,3 +1,29 @@
+#                           .=     ,        =.
+#                   _  _   /'/    )\,/,/(_   \ \
+#                    `//-.|  (  ,\\)\//\)\/_  ) |
+#                    //___\   `\\\/\\/\/\\///'  /
+#                 ,-"~`-._ `"--'_   `"'"`  _ \`'"~-,_
+#                 \       `-.  '_`.      .'_` \ ,-"~`/
+#                  `.__.-'`/  ( -\        /- )|-.__,'
+#                    ||   |    \ O)  /^\ (O / |
+#                    `\\  |         /   `\    /
+#                      \\  \       /      `\ /
+#                       `\\ `-.  /' .---.--.\
+#                         `\\/`~(, '()      ('
+#                          /(O) \\   _,.-.,_)
+#                         //  \\ `\'`      /
+#                        / |  ||   `""'"~"`
+#                      /'  |__||
+#                            `o
+#      ___       _                    _          ___               
+#     / _ \___ _(_)__ __ __     ___  (_)__  ___ / (_)__  ___       
+#    / // / _ `/ (_-</ // /    / _ \/ / _ \/ -_) / / _ \/ -_)      
+#   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
+#                   /___/    /_/    /_/                            
+#
+#   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
+#   art by Joan G. Stark (Spunk)
+
 import os
 
 from DaisyTools.core.get_entity_info import get_entity_info
@@ -25,6 +51,7 @@ def export_usd(params=None):
     entity = info["entity"]
     task = info["task"]
     name = info["name"]
+    is_shot = entity.get("type") == "shot"
 
     params = params or {}
     department = params.get("department") or info["department"]
@@ -77,20 +104,20 @@ def export_usd(params=None):
                 import maya.cmds as cmds
                 cmds.currentTime(frame)
             frame_path = f"{base}.{frame:04d}{ext}"
-            write_usd(preset_name, frame_path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=(frame, frame))
+            write_usd(preset_name, frame_path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=(frame, frame), is_shot=is_shot)
             frame_paths.append(frame_path)
         print(f"USD exported (file per frame): {len(frame_paths)} files in {os.path.dirname(path)}")
     else:
-        write_usd(preset_name, path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=frame_range)
+        write_usd(preset_name, path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=frame_range, is_shot=is_shot)
         print(f"USD exported: {path}")
 
     if update_master:
         if is_file_per_frame:
             clips_path = f"{base}.clips.usda"
             create_master_clips(frame_paths, frame_range, clips_path, default_prim=default_prim)
-            create_master(clips_path, master_path, default_prim=default_prim)
+            create_master(clips_path, master_path, default_prim=default_prim, frame_range=frame_range)
         else:
-            create_master(path, master_path, default_prim=default_prim)
+            create_master(path, master_path, default_prim=default_prim, frame_range=frame_range)
 
     details = dict(entity)
     details["version"] = core.products.getProductDataFromFilepath(path).get("version", "")
