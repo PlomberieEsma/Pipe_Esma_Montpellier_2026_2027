@@ -35,6 +35,13 @@ class EsmaUsdExportClass(QWidget):
     listType = "Export"           # ou "Import" — la liste dans laquelle il se range
 
     def setup(self, state, core, stateManager, stateData=None):
+
+        #-----------------------------------------------------------------------------------#
+        # Initialize the state's Qt/Prism plumbing                                          #
+        # Build the widgets, wire events and pre-fill the selection                         #
+        # then restore any previously saved state data                                      #
+        #-----------------------------------------------------------------------------------#
+
         self.core = core
         self.state = state
         self.stateManager = stateManager
@@ -42,20 +49,34 @@ class EsmaUsdExportClass(QWidget):
         self.nodes = []
         self.setupUi()
         self.connectEvents()
-        self.e_departmentLayer.setEnabled(not self.chb_departmentFromScene.isChecked())
         self.initializeContextDefaults()
         self.initializeExistingSelection()
 
         if stateData is not None:
             self.loadData(stateData)
 
+    ##############################################################################################################
+    ###########################     CONTEXT & FRAME RANGE Helpers     ############################################
+    ##############################################################################################################
+
     @err_catcher(name=__name__)
     def getCurrentContext(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Get the entity (asset/shot) the current scene file belongs to                     #
+        #-----------------------------------------------------------------------------------#
+
         fileName = self.core.getCurrentFileName()
         return self.core.getScenefileData(fileName) or {}
 
     @err_catcher(name=__name__)
     def getContextFrameRange(self, context, rangeType):
+
+        #-----------------------------------------------------------------------------------#
+        # Work out the start/end frame for the given range type                             #
+        # Mirrors Prism's own default Export state, trimmed to what this state exposes      #
+        #-----------------------------------------------------------------------------------#
+
         # mirrors Prism's own default Export state (default_Export.py::getFrameRange),
         # trimmed to the range types this state exposes
         if rangeType == "Single Frame":
@@ -82,6 +103,12 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def refreshFrameRange(self, rangeType):
+
+        #-----------------------------------------------------------------------------------#
+        # Show/hide the range widgets for the chosen range type                             #
+        # and fill them in from the current context unless the type is Custom               #
+        #-----------------------------------------------------------------------------------#
+
         self.updateRangeVisibility(rangeType)
         if rangeType == "Custom":
             return
@@ -97,6 +124,12 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def setRangeType(self, rangeType):
+
+        #-----------------------------------------------------------------------------------#
+        # Select the given range type in the combo box                                      #
+        # and refresh the frame range fields to match                                       #
+        #-----------------------------------------------------------------------------------#
+
         idx = self.cb_rangeType.findText(rangeType)
         if idx != -1:
             self.cb_rangeType.setCurrentIndex(idx)
@@ -104,6 +137,11 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def getEntityName(self, context):
+
+        #-----------------------------------------------------------------------------------#
+        # Build the display name of the current asset or shot entity                        #
+        #-----------------------------------------------------------------------------------#
+
         if context.get("type") == "asset":
             return context.get("asset", "")
         if context.get("type") == "shot":
@@ -112,11 +150,14 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def initializeContextDefaults(self):
-        context = self.getCurrentContext()
 
-        department = context.get("department")
-        if department:
-            self.e_departmentLayer.setText(department)
+        #-----------------------------------------------------------------------------------#
+        # Prefill the parent prim field with the entity name                                #
+        # Remove range types that don't apply outside of shots                              #
+        # and pick a sensible default range type/output for the entity type                 #
+        #-----------------------------------------------------------------------------------#
+
+        context = self.getCurrentContext()
 
         entityName = self.getEntityName(context)
         if entityName:
@@ -139,13 +180,74 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def getDefaultPrim(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Get the USD default prim name:                                                    #
+        # the override field when it is checked and filled in,                              #
+        # otherwise the current entity's name                                               #
+        #-----------------------------------------------------------------------------------#
+
         if self.chb_parentPrim.isChecked() and self.e_parentPrim.text().strip():
             return self.e_parentPrim.text().strip()
 
         return self.getEntityName(self.getCurrentContext())
 
+    ##############################################################################################################
+    ###########################     SELECTION Helpers - Maya Objects     #########################################
+    ##############################################################################################################
+
+    @err_catcher(name=__name__)
+    def getReferencedGeoSetNodes(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Collect the members of every '<assetName>_geoSet' selection set                   #
+        # found inside the Maya file references brought into a shot                         #
+        # so a shot export can default to the same geo as each asset's own export           #
+        #-----------------------------------------------------------------------------------#
+
+        # a shot scene can have several rigs brought in as Maya file references;
+        # each rig's own asset export already left a "<assetName>_geoSet" set
+        # inside that referenced file - find all of them and union their members
+        # pyrefly: ignore [missing-import]
+        import maya.cmds as cmds
+        import os
+
+        # core.entities.getAsset() joins the name directly onto the asset root,
+        # so it misses assets organized under subcategory folders - compare
+        # against the basenames of every real asset path instead
+        assetPaths = self.core.entities.getAssetPaths() or []
+        validAssetNames = {os.path.basename(p) for p in assetPaths}
+
+        nodes = []
+        for objSet in cmds.ls(type="objectSet"):
+            try:
+                isReferenced = cmds.referenceQuery(objSet, isNodeReferenced=True)
+            except RuntimeError:
+                isReferenced = False
+            if not isReferenced:
+                continue
+
+            shortName = objSet.rsplit(":", 1)[-1]
+            if not shortName.endswith("_geoSet"):
+                continue
+
+            entityName = shortName[: -len("_geoSet")]
+            if not entityName or entityName not in validAssetNames:
+                continue
+
+            nodes.extend(cmds.sets(objSet, query=True) or [])
+
+        return list(dict.fromkeys(nodes))
+
     @err_catcher(name=__name__)
     def initializeExistingSelection(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Reflect any export selection already present in the scene                         #
+        # (geo set or group from a previous export) in the Maya Objects list                #
+        # instead of leaving that list empty                                                #
+        #-----------------------------------------------------------------------------------#
+
         # if this entity already has an export selection set or group in the
         # scene (from a previous export), reflect it in the Maya Objects list
         # instead of leaving it empty
@@ -156,7 +258,16 @@ class EsmaUsdExportClass(QWidget):
         # pyrefly: ignore [missing-import]
         import maya.cmds as cmds
 
-        geo_set_name = default_prim + "_geo"
+        if self.getCurrentContext().get("type") == "shot":
+            nodes = self.getReferencedGeoSetNodes()
+            if nodes:
+                self.nodes = nodes
+                self.lw_objects.clear()
+                for node in nodes:
+                    self.lw_objects.addItem(node.split("|")[-1])
+            return
+
+        geo_set_name = default_prim + "_geoSet"
         if cmds.objExists(geo_set_name) and cmds.nodeType(geo_set_name) == "objectSet":
             members = cmds.sets(geo_set_name, query=True) or []
             if members:
@@ -172,8 +283,18 @@ class EsmaUsdExportClass(QWidget):
             self.lw_objects.clear()
             self.lw_objects.addItem(default_prim)
 
+    ##############################################################################################################
+    ###########################     STATE Data - Load / Save     #################################################
+    ##############################################################################################################
+
     @err_catcher(name=__name__)
     def loadData(self, data):
+
+        #-----------------------------------------------------------------------------------#
+        # Restore the state's saved name/enabled flag                                       #
+        # then notify Prism the state settings have been loaded                             #
+        #-----------------------------------------------------------------------------------#
+
         if "statename" in data:
             self.e_name.setText(data["statename"])
         if "stateenabled" in data and type(data["stateenabled"]) == int:
@@ -181,8 +302,18 @@ class EsmaUsdExportClass(QWidget):
 
         self.core.callback("onStateSettingsLoaded", self, data)
 
+    ##############################################################################################################
+    ###########################     UI CONSTRUCTION     ##########################################################
+    ##############################################################################################################
+
     @err_catcher(name=__name__)
     def _makeOverrideRow(self, default_text="", checkbox_label=None):
+
+        #-----------------------------------------------------------------------------------#
+        # Build a checkbox + line edit pair,                                                #
+        # the widget used by every override field in this state's UI                        #
+        #-----------------------------------------------------------------------------------#
+
         # checkbox + line edit, used by every "override" field
         row = QWidget()
         lo_row = QHBoxLayout(row)
@@ -198,6 +329,11 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def setupUi(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Build the state's UI: Source, Comment, Target and Settings groups                 #
+        #-----------------------------------------------------------------------------------#
+
         self.lo_main = QVBoxLayout(self)
 
         self.w_name = QWidget()
@@ -248,23 +384,16 @@ class EsmaUsdExportClass(QWidget):
         self.lo_source.addWidget(self.lw_objects)
         self.lo_source.addWidget(self.b_addSelected)
 
+        # ----------------------------------------------------------- Comment
+        self.gb_comment = QGroupBox("Comment")
+        self.lo_comment = QVBoxLayout(self.gb_comment)
+        self.te_comment = QTextEdit()
+        self.te_comment.setFixedHeight(80)
+        self.lo_comment.addWidget(self.te_comment)
+
         # ------------------------------------------------------------ Target
         self.gb_target = QGroupBox("Target")
         self.lo_target = QVBoxLayout(self.gb_target)
-
-        self.w_departmentLayer = QWidget()
-        self.lo_departmentLayer = QHBoxLayout(self.w_departmentLayer)
-        self.l_departmentLayer = QLabel("Departmentlayer:")
-        (
-            self.row_departmentLayer,
-            self.chb_departmentFromScene,
-            self.e_departmentLayer,
-        ) = self._makeOverrideRow(
-            default_text="not in a departement", checkbox_label="From Scenefile"
-        )
-        self.chb_departmentFromScene.setChecked(True)
-        self.lo_departmentLayer.addWidget(self.l_departmentLayer)
-        self.lo_departmentLayer.addWidget(self.row_departmentLayer)
 
         self.w_master = QWidget()
         self.lo_master = QHBoxLayout(self.w_master)
@@ -294,7 +423,6 @@ class EsmaUsdExportClass(QWidget):
         self.lo_outputType.addStretch()
         self.lo_outputType.addWidget(self.cb_outputType)
 
-        self.lo_target.addWidget(self.w_departmentLayer)
         self.lo_target.addWidget(self.w_master)
         self.lo_target.addWidget(self.w_updateThumbnail)
         self.lo_target.addWidget(self.w_outputType)
@@ -373,31 +501,50 @@ class EsmaUsdExportClass(QWidget):
         self.lo_settings.addWidget(self.w_subdivision)
 
         self.lo_main.addWidget(self.gb_source)
+        self.lo_main.addWidget(self.gb_comment)
         self.lo_main.addWidget(self.gb_target)
         self.lo_main.addWidget(self.gb_settings)
 
         self.updateRangeVisibility(self.cb_rangeType.currentText())
 
+    ##############################################################################################################
+    ###########################     EVENT Handling     ############################################################
+    ##############################################################################################################
+
     @err_catcher(name=__name__)
     def connectEvents(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Wire up the UI widgets to their handlers                                          #
+        #-----------------------------------------------------------------------------------#
+
         self.e_name.textChanged.connect(self.nameChanged)
         self.e_name.editingFinished.connect(self.stateManager.saveStatesToScene)
 
         self.chb_wholeScene.toggled.connect(self.wholeSceneToggled)
         self.chb_parentPrim.toggled.connect(self.e_parentPrim.setEnabled)
-        self.chb_departmentFromScene.toggled.connect(
-            lambda checked: self.e_departmentLayer.setEnabled(not checked)
-        )
         self.cb_rangeType.currentTextChanged.connect(self.refreshFrameRange)
         self.b_addSelected.clicked.connect(self.addSelected)
 
     @err_catcher(name=__name__)
     def wholeSceneToggled(self, checked):
+
+        #-----------------------------------------------------------------------------------#
+        # Disable the Maya Objects list/Add selected button                                 #
+        # while 'Export whole Scene' is checked                                             #
+        #-----------------------------------------------------------------------------------#
+
         self.lw_objects.setEnabled(not checked)
         self.b_addSelected.setEnabled(not checked)
 
     @err_catcher(name=__name__)
     def updateRangeVisibility(self, rangeType):
+
+        #-----------------------------------------------------------------------------------#
+        # Show the range spin boxes only for the Custom range type,                         #
+        # the read-only labels otherwise                                                    #
+        #-----------------------------------------------------------------------------------#
+
         isCustom = rangeType == "Custom"
         self.l_rangeStart.setVisible(not isCustom)
         self.l_rangeEnd.setVisible(not isCustom)
@@ -406,6 +553,12 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def addSelected(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Add the current Maya selection to the Maya Objects list                           #
+        # creating the asset's geo group/selection set on first export if needed            #
+        #-----------------------------------------------------------------------------------#
+
         # pyrefly: ignore [missing-import]
         import maya.cmds as cmds
 
@@ -414,6 +567,23 @@ class EsmaUsdExportClass(QWidget):
             self.core.popup("Nothing selected in the scene.", title="EsmaUsdExport", severity="warning")
             return
 
+        default_prim = self.getDefaultPrim()
+        geo_set_name = default_prim + "_geoSet" if default_prim else ""
+        existing_set = bool(geo_set_name) and cmds.objExists(geo_set_name) and cmds.nodeType(geo_set_name) == "objectSet"
+
+        if self.getCurrentContext().get("type") == "asset" and default_prim and not existing_set:
+            from DaisyTools.setupAsset.maya.setup_geo import setup_geo
+            from DaisyTools.core.core import create_selection_set
+
+            # setup_geo() parents the selected geo under "<master_grp>|<entity>_geo" -
+            # the selection set should track that geo subgroup, not the loose
+            # nodes that were selected before it got reparented
+            setup_geo(default_prim=default_prim)
+            geo_grp_path = "|" + default_prim + "|" + default_prim + "_geo"
+            if cmds.objExists(geo_grp_path):
+                create_selection_set([geo_grp_path], geo_set_name)
+                selection = cmds.sets(geo_set_name, query=True) or [geo_grp_path]
+
         self.nodes = selection
         self.lw_objects.clear()
         for node in selection:
@@ -421,17 +591,52 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def nameChanged(self, text):
+
+        #-----------------------------------------------------------------------------------#
+        # Keep the state's tree item label in sync with the name field                      #
+        #-----------------------------------------------------------------------------------#
+
         self.state.setText(0, text)
 
     @err_catcher(name=__name__)
     def updateUi(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Nothing to refresh - required by Prism's state interface                          #
+        #-----------------------------------------------------------------------------------#
+
         return True
+
+    ##############################################################################################################
+    ###########################     EXPORT Execution     ##########################################################
+    ##############################################################################################################
+
+    @err_catcher(name=__name__)
+    def getComment(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Get the comment to embed in the exported product's version folder name,           #
+        # falling back to the State Manager's shared publish comment when left empty        #
+        #-----------------------------------------------------------------------------------#
+
+        # the comment ends up embedded in the product's version folder name,
+        # so collapse any line breaks from the multi-line field into spaces
+        stateComment = " ".join(self.te_comment.toPlainText().split())
+
+        # always use what's typed in this state's own field; only fall back
+        # to the State Manager's shared publish comment when it's left empty
+        return stateComment or self.stateManager.publishComment
 
     @err_catcher(name=__name__)
     def getExportParams(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Collect this state's UI values into the plain dict                                #
+        # that exportUSD.export_usd() expects                                               #
+        #-----------------------------------------------------------------------------------#
+
         # plain dict, no Qt objects - this is what exportUSD.export_usd() consumes
         return {
-            "department": self.e_departmentLayer.text().strip(),
             "whole_scene": self.chb_wholeScene.isChecked(),
             "nodes": list(self.nodes),
             "default_prim_override": (
@@ -447,10 +652,16 @@ class EsmaUsdExportClass(QWidget):
             "animation_type": self.cb_animationType.currentText(),
             "start_frame": self.sp_rangeStart.value(),
             "end_frame": self.sp_rangeEnd.value(),
+            "comment": self.getComment(),
         }
 
     @err_catcher(name=__name__)
     def preExecuteState(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Warn if there is nothing to export before the state actually runs                 #
+        #-----------------------------------------------------------------------------------#
+
         warnings = []
         if not self.chb_wholeScene.isChecked() and not self.nodes:
             warnings.append(["No objects in the Maya Objects list.", "", 3])
@@ -458,6 +669,11 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def executeState(self, parent, useVersion="next"):
+
+        #-----------------------------------------------------------------------------------#
+        # Run the USD export and report the result back to the State Manager                #
+        #-----------------------------------------------------------------------------------#
+
         from DaisyTools.saveas.exportUSD import export_usd
 
         if not self.chb_wholeScene.isChecked() and not self.nodes:
@@ -487,6 +703,11 @@ class EsmaUsdExportClass(QWidget):
 
     @err_catcher(name=__name__)
     def getStateProps(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Collect the state's own properties for Prism to save with the scene               #
+        #-----------------------------------------------------------------------------------#
+
         stateProps = {}
         stateProps.update(
             {
