@@ -85,6 +85,10 @@ def export_usd(params=None):
     if start_frame is not None and end_frame is not None:
         frame_range = (start_frame, end_frame)
 
+    #an export spanning more than one frame is an animation: it must reuse the
+    #asset's existing geo selection set but never author a new one
+    is_animation = bool(frame_range) and frame_range[0] != frame_range[1]
+
     path = core.products.generateProductPath(entity=entity, task=task, extension=extension, version=None, location="global")
     #the master is always .usda, independent of the versioned file's Outputtype:
     #it's just a thin sublayer/clip wrapper, so keeping it text-based makes it diffable
@@ -104,11 +108,11 @@ def export_usd(params=None):
                 import maya.cmds as cmds
                 cmds.currentTime(frame)
             frame_path = f"{base}.{frame:04d}{ext}"
-            write_usd(preset_name, frame_path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=(frame, frame), is_shot=is_shot)
+            write_usd(preset_name, frame_path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=(frame, frame), is_shot=is_shot, is_animation=is_animation)
             frame_paths.append(frame_path)
         print(f"USD exported (file per frame): {len(frame_paths)} files in {os.path.dirname(path)}")
     else:
-        write_usd(preset_name, path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=frame_range, is_shot=is_shot)
+        write_usd(preset_name, path, default_prim=default_prim, selection_only=not whole_scene, overrides=overrides, frame_range=frame_range, is_shot=is_shot, is_animation=is_animation)
         print(f"USD exported: {path}")
 
     if update_master:

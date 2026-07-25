@@ -76,7 +76,7 @@ SUBDIVISION_METHOD_MAP = {
 }
 
 
-def write_usd(preset_name, file_path, default_prim="", selection_only=True, overrides=None, frame_range=None, is_shot=False):
+def write_usd(preset_name, file_path, default_prim="", selection_only=True, overrides=None, frame_range=None, is_shot=False, is_animation=False):
 
     #Write usd using mayaUsdPlugin if launched inside maya
     #overrides: dict of extra/override mayaUSDExport flags (e.g. from the state UI)
@@ -135,13 +135,14 @@ def write_usd(preset_name, file_path, default_prim="", selection_only=True, over
                         "Aucune géométrie sélectionnée : sélectionne les nœuds à "
                         "exporter avant de lancer l'export USD."
                     )
-                if not is_shot:
+                if not is_shot and not is_animation:
                     #no set yet: build it from the geo added to the Maya Objects list, for reuse next time
+                    #animation exports never author the set - they only reuse an existing one
                     create_selection_set(selection, geo_set_name)
             else:
                 cmds.select(master_grp)
                 selection = [master_grp]
-                if not is_shot:
+                if not is_shot and not is_animation:
                     create_selection_set(selection, geo_set_name)
 
         else:
