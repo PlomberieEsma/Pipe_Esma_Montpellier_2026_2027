@@ -28,6 +28,7 @@
 import hou, time
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
 
 print("execute template_set_dress.py\n\n")
 
@@ -238,7 +239,6 @@ def nodes_template_set_dress(imported_assets):
     #-------------------------------- arange nodes ---------------------------------#
     lopnet.layoutChildren()
 
-    # node_list["graft_set_dress1"].setPosition([0,node_list["graft_set_dress1"].position()[1]])
     node_list["create_assembly1"].move([0,node_list["input_box"].size()[1]-2])
     node_list["create_set_dress1"].move([0,node_list["input_box"].size()[1]-2])
 
@@ -259,6 +259,17 @@ def nodes_template_set_dress(imported_assets):
     output_box.setComment("Outputs")
     output_box.fitAroundContents()
     node_list.update({"output_box" : output_box})
+
+    #-------------------------------- crete toolbox ---------------------------------#
+    node_list.update(create_toolbox(["primitive",
+                                     "prune",
+                                     "graftbranches",
+                                     "stagemanager",
+                                     "restructurescenegraph",
+                                     "instancer",
+                                     "matchsize",
+                                     "xform",
+                                     "edit"], [-15,0]))
 
 
     elapsed_counter = time.perf_counter() - start_counter
