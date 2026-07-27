@@ -120,9 +120,21 @@ def nodes_import_assets(imported_assets, input):
         reference1.parm("filerefprim2").set("") #reference specific primitive
         reference1.parm("filerefprimpath2").set("/__class__")
 
+        set_variant1 = lopnet.createNode("setvariant")
+        set_variant1.setName(f"set_variant_{asset_name}")
+        set_variant1.setInput(0, reference1)
+        set_variant1.move(node_position)
+        set_variant1.parm("num_variants").set(2)
+        set_variant1.parm("variantset1").set("geo")
+        set_variant1.parm("variantname1").set("geo_var_01")
+        set_variant1.parm("variantset2").set("grm")
+        set_variant1.parm("variantname2").set("grm_var_01")
+        set_variant1.parm("variantset2").set("mtl")
+        set_variant1.parm("variantname2").set("mtl_var_01")
+
         scale_down1 = lopnet.createNode("xform")
         scale_down1.setName(f"scale_down_{asset_name}")
-        scale_down1.setInput(0, reference1)
+        scale_down1.setInput(0, set_variant1)
         scale_down1.parm("primpattern").set("%kind:component")
         scale_down1.parm("scale").set(0.01)
 
@@ -149,10 +161,11 @@ def nodes_import_assets(imported_assets, input):
         null1.setColor(hou.Color(color_input_box))
 
         node_list.update({f"ref_{asset_name}": reference1,
-                       f"scale_down_{asset_name}": scale_down1,
-                       f"restructure_scene_graph_{asset_name}": restructure_scene_graph1,
-                       f"configure_prim_{asset_name}": configure_prim1,
-                       f"OUT_import_{asset_name}": null1})
+                          f"set_variant_{asset_name}": set_variant1,
+                          f"scale_down_{asset_name}": scale_down1,
+                          f"restructure_scene_graph_{asset_name}": restructure_scene_graph1,
+                          f"configure_prim_{asset_name}": configure_prim1,
+                          f"OUT_import_{asset_name}": null1})
 
         graft_set_dress1.setInput(1000, null1)
 
@@ -259,6 +272,9 @@ def nodes_template_set_dress(imported_assets):
     output_box.setComment("Outputs")
     output_box.fitAroundContents()
     node_list.update({"output_box" : output_box})
+
+    # set display flag
+    node_list["graft_set_dress1"].setDisplayFlag(True)
 
     #-------------------------------- crete toolbox ---------------------------------#
     node_list.update(create_toolbox(["primitive",

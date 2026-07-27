@@ -236,6 +236,8 @@ def template_shading():
                       "material_box" : material_box,
                       "output_box" : output_box})
 
+    # set display flag
+    node_list["assign_shader1"].setDisplayFlag(True)
 
     #-------------------------------- crete toolbox ---------------------------------#
     node_list.update(create_toolbox(["assignmaterial",
