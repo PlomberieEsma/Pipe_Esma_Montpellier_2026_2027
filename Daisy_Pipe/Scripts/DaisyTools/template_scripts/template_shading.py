@@ -29,6 +29,7 @@
 import hou, time
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
 
 print("execute template_shading.py\n\n")
 
@@ -235,6 +236,12 @@ def template_shading():
                       "material_box" : material_box,
                       "output_box" : output_box})
 
+
+    #-------------------------------- crete toolbox ---------------------------------#
+    node_list.update(create_toolbox(["assignmaterial",
+                                     "materiallinker",
+                                     "unassignmaterial",
+                                     "editmaterial"], [-10,0]))
 
 
     elapsed_counter = time.perf_counter() - start_counter
