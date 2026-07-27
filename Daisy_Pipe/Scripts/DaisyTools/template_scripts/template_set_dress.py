@@ -26,6 +26,7 @@
 
 #import modules
 import hou, time
+from pxr import Usd, UsdGeom
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
@@ -51,6 +52,7 @@ class Error(Exception):
 
 core = get_core()
 info = get_entity_info()
+
 usd_file_format = "usda"
 
 shot_path = info["path"]
@@ -58,6 +60,8 @@ seq_and_sht_name = info["name"]
 shot_entity = info["entity"]
 shot_task = info["task"]
 shot_version = core.products.getNextAvailableVersion(entity=shot_entity, product=shot_task)
+project_path = core.sequencePath.replace("\\", "/")
+project_path = project_path.removesuffix("/03_Production/Shots")
 
 sequence_name = shot_entity["sequence"]
 shot_name = shot_entity["shot"]
@@ -107,6 +111,10 @@ def nodes_import_assets(imported_assets, input):
         asset_path = asset["asset_path"]
         asset_env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
 
+        asset_stage = Usd.Stage.Open(f"{project_path}/03_Production/Assets/{asset_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
+        meters_per_unit = UsdGeom.GetStageMetersPerUnit(asset_stage)
+        print(f"meters per unit for {asset_name} : {meters_per_unit}")
+
         reference1 = lopnet.createNode("reference")
         reference1.setName(f"ref_{asset_name}")
         reference1.parm("enable").set(0)
@@ -124,19 +132,19 @@ def nodes_import_assets(imported_assets, input):
         set_variant1.setName(f"set_variant_{asset_name}")
         set_variant1.setInput(0, reference1)
         set_variant1.move(node_position)
-        set_variant1.parm("num_variants").set(2)
+        set_variant1.parm("num_variants").set(3)
         set_variant1.parm("variantset1").set("geo")
-        set_variant1.parm("variantname1").set("geo_var_01")
+        set_variant1.parm("variantname1").set("geo_var01")
         set_variant1.parm("variantset2").set("grm")
-        set_variant1.parm("variantname2").set("grm_var_01")
-        set_variant1.parm("variantset2").set("mtl")
-        set_variant1.parm("variantname2").set("mtl_var_01")
+        set_variant1.parm("variantname2").set("grm_var01")
+        set_variant1.parm("variantset3").set("mtl")
+        set_variant1.parm("variantname3").set("mtl_var01")
 
         scale_down1 = lopnet.createNode("xform")
         scale_down1.setName(f"scale_down_{asset_name}")
         scale_down1.setInput(0, set_variant1)
         scale_down1.parm("primpattern").set("%kind:component")
-        scale_down1.parm("scale").set(0.01)
+        scale_down1.parm("scale").set(meters_per_unit)
 
         restructure_scene_graph1 = lopnet.createNode("restructurescenegraph")
         restructure_scene_graph1.setName(f"restructure_scene_graph_{asset_name}")
