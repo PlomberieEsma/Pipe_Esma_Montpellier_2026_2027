@@ -1230,6 +1230,7 @@ def nodes_create_asset(tasks, asset_name):
     nodes_list["usd_rop1"].parm("execute").pressButton()
     print("Fin du processus")
 
+    os.makedirs(f"{path}/Scenefiles/USD/usd", exist_ok=True)
     hou.hipFile.save(f"{path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
     print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
 
