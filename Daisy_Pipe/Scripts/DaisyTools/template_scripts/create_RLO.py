@@ -234,7 +234,7 @@ def nodes_template_RLO(imported_assets):
     create_cam1 = lopnet.createNode("primitive")
     create_cam1.setName("create_cam1")
     create_cam1.setInput(0, scale_down_set_dress)
-    create_cam1.parm("primpath").set("`lopinputprims('.', 0)`/cam")
+    create_cam1.parm("primpath").set(f"{seq_and_sht_name}/cam")
     create_cam1.parm("primkind").set("group")
     create_cam1.parm("parentprimtype").set("") #none
 
