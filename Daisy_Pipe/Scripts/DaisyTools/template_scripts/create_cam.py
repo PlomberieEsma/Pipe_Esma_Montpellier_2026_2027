@@ -25,13 +25,12 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, time, json
+import hou, time
 from pxr import Usd, UsdGeom
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
-from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
 
-print("execute template_RLO.py\n\n")
+print("execute create_cam.py\n\n")
 
 # title
 try:
@@ -66,109 +65,79 @@ project_path = project_path.removesuffix("/03_Production/Shots")
 sequence_name = shot_entity["sequence"]
 shot_name = shot_entity["shot"]
 
-json_path = f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/cameras.json"
+digit_number = 3 # number of digits in the seq and sht names
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def create_cam(shot_duration=24):
+def create_cam(input_node, input_network_box):
+    # detect all cameras and get the last one well named
+    cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
+    last_cam_shot_number = 0
+    new_shot_name = "sh010"
+    last_cam_object = None
 
-    new_shot = add_shot_in_json(shot_duration)
-    new_shot_name = list(new_shot.keys())[0]
-    new_shot_start = new_shot[new_shot_name]["start"]
-    new_shot_end = new_shot[new_shot_name]["end"]
+    if cameras_in_scene != ():
+        for camera in cameras_in_scene:
+            cam_name = camera.name()
+            cam_name_first_part = cam_name[:6]
+            cam_name_second_part = cam_name[6+digit_number:-digit_number]
 
+            if cam_name_first_part == "cam_sq" and cam_name_second_part == "_sh":
+                shot_number = int(cam_name[-3:])
+                if shot_number > last_cam_shot_number:
+                    last_cam_shot_number = shot_number
+                    last_cam_object = camera
+
+        if last_cam_shot_number + 10 < 100:
+            new_shot_name = f"sh0{last_cam_shot_number+10}"
+        else:
+            new_shot_name = f"sh{last_cam_shot_number+10}"
+    
+    # create the cam with the new shot name
     lopnet = hou.node("/stage")
-    key_cursor = hou.Keyframe()
 
     cam1 = lopnet.createNode("camera")
     cam1.setName(f"cam_{sequence_name}_{new_shot_name}")
     cam1.parm("primpath").set(f"/{seq_and_sht_name}/cam/cam_{sequence_name}_{new_shot_name}")
 
-    key_cursor.setFrame(new_shot_start)
-    cam1.parm("tx").setKeyframe(key_cursor)
-    cam1.parm("ty").setKeyframe(key_cursor)
-    cam1.parm("tz").setKeyframe(key_cursor)
-    cam1.parm("rx").setKeyframe(key_cursor)
-    cam1.parm("ry").setKeyframe(key_cursor)
-    cam1.parm("rz").setKeyframe(key_cursor)
-    
-    key_cursor.setFrame(new_shot_end)
-    cam1.parm("tx").setKeyframe(key_cursor)
-    cam1.parm("ty").setKeyframe(key_cursor)
-    cam1.parm("tz").setKeyframe(key_cursor)
-    cam1.parm("rx").setKeyframe(key_cursor)
-    cam1.parm("ry").setKeyframe(key_cursor)
-    cam1.parm("rz").setKeyframe(key_cursor)
+    #-------------------------------- rearange nodes ---------------------------------#
+    if last_cam_object != None:
+        outputs_last_cam_object = last_cam_object.outputs()
+        for output in outputs_last_cam_object:
+            output.setInput(0, None)
+        cam1.setInput(0, last_cam_object)
+        for output in outputs_last_cam_object:
+            output.setInput(0, cam1)
 
-def add_shot_in_json(shot_duration):
-    new_shot_name = None
-    new_shot_start = 1001
-    new_shot_end = None
-
-    # create new shot name
-    json_data = read_json(shot_duration)
-    shots_in_json = json_data[sequence_name]
-
-    if json_data["previously_empty"] == False:
-        last_shot_key = list(shots_in_json.keys())[-1]
-        last_shot_number = last_shot_key[-3:]
-        new_shot_number = int(last_shot_number)+10
-        if new_shot_number < 100:
-            new_shot_name = f"sh0{new_shot_number}"
-        else:
-            new_shot_name = f"sh{new_shot_number}"
-
-        # create new shot start
-        end_of_last_shot = shots_in_json[last_shot_key]["end"]
-        new_shot_start = end_of_last_shot + 1
-
-        # create new shot end
-        new_shot_end = new_shot_start + shot_duration
-
-        new_shot = {new_shot_name : {
-            "start": new_shot_start,
-            "end": new_shot_end
-            }}
-
-        json_data[sequence_name].update(new_shot)
-        write_json(json_data)
-        return new_shot
+        cam1.setPosition([last_cam_object.position()[0],last_cam_object.position()[1]-1])
     else:
-        json_data["previously_empty"] = False
-        write_json(json_data)
-        return json_data[sequence_name]
+        outputs_input_node = input_node.outputs()
+        for output in outputs_input_node:
+            output.setInput(0, None)
+        cam1.setInput(0, input_node)
+        for output in outputs_input_node:
+            output.setInput(0, cam1)
+
+        cam1.setPosition([input_node.position()[0],input_node.position()[1]-2])
+
+    cam1.setSelected(1, clear_all_selected=True)
+
+    input_network_box.addItem(cam1)
+    input_network_box.fitAroundContents()
+
+    # set display flag
+    cam1.setDisplayFlag(True)
 
 
-def write_json(data):
-    try:
-        with open(json_path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4, ensure_ascii=False)
-        return
-    except Exception as e:
-        return f"Error : {e}"
+nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
+null_input = None
+for null in nulls_in_scene:
+    if null.name() == "cameras":
+        null_input = null
+        break
 
+box_input = hou.node("/stage").findNetworkBox("/stage/camera_box")
 
-def read_json(shot_duration):
-    try:
-        with open(json_path, 'r', encoding='utf-8') as file:
-            try:
-                data = json.load(file)
-            except:
-                # if the file is empty
-                data = {
-                    sequence_name : {
-                        "sh010" : {
-                            "start": 1001,
-                            "end": 1001 + shot_duration,
-                        }
-                    },
-                    "previously_empty" : True
-                }
-        return data
-    except Exception as e:
-        return f"Error : {e}"
-
-
-create_cam(int(input("shot duration : ")))
+create_cam(null_input, box_input)

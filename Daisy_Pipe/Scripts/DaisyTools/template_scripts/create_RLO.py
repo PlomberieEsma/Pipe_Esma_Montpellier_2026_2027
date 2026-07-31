@@ -70,6 +70,7 @@ env_var_path = f"$PRISM_JOB/03_Production/Shots/{sequence_name}/{shot_name}"
 
 node_position = [0,0]
 color_input_box = [0.33, 0.18, 0.44]
+color_camera_box = [0.41, 0.4, 0.64]
 color_output_box = [0.86, 0.85, 0.72]
 
 #___________________________________________________________________________________________________________________________________________________________________________________________________
@@ -193,6 +194,7 @@ def nodes_import_assets(imported_assets, input):
     
     # set input network box
     input_box = lopnet.createNetworkBox()
+    input_box.setName("input_box")
     nodes_in_input_box = dict(node_list)
     del nodes_in_input_box["graft_RLO1"]
     for node in nodes_in_input_box:
@@ -240,9 +242,14 @@ def nodes_template_RLO(imported_assets):
 
     node_list.update(nodes_import_assets(imported_assets, create_cam1))
 
+    null_cam1 = lopnet.createNode("null")
+    null_cam1.setName("cameras")
+    null_cam1.setColor(hou.Color(color_camera_box))
+    null_cam1.setInput(0, node_list["graft_RLO1"])
+
     scale_up1 = lopnet.createNode("xform")
     scale_up1.setName("scale_up1")
-    scale_up1.setInput(0, node_list["graft_RLO1"])
+    scale_up1.setInput(0, null_cam1)
     scale_up1.parm("primpattern").set("/*")
     scale_up1.parm("scale").set(100)
 
@@ -270,6 +277,7 @@ def nodes_template_RLO(imported_assets):
     node_list.update({"ref_set_dress": ref_set_dress,
                     "scale_down_set_dress": scale_down_set_dress,
                     "create_cam1" : create_cam1,
+                    "null_cam1" : null_cam1,
                     "scale_up1" : scale_up1,
                     "config_layer1" : config_layer1,
                     "usd_rop1" : usd_rop1})
@@ -281,6 +289,8 @@ def nodes_template_RLO(imported_assets):
     node_list["scale_down_set_dress"].move([0,node_list["input_box"].size()[1]-2])
     node_list["create_cam1"].move([0,node_list["input_box"].size()[1]-2])
 
+    node_list["null_cam1"].move([0, -3])
+
     node_list["scale_up1"].setPosition([0,node_list["scale_up1"].position()[1]])
     node_list["config_layer1"].setPosition([0,node_list["config_layer1"].position()[1]])
     node_list["usd_rop1"].setPosition([0,node_list["usd_rop1"].position()[1]])
@@ -289,9 +299,21 @@ def nodes_template_RLO(imported_assets):
     node_list["config_layer1"].move([0, -15])
     node_list["usd_rop1"].move([0, -15])
 
+    # set camera network box
+    nodes_in_camera_box = ["null_cam1"]
+    camera_box = lopnet.createNetworkBox()
+    camera_box.setName("camera_box")
+    for node in nodes_in_camera_box:
+        camera_box.addItem(node_list[node])
+    camera_box.setColor(hou.Color(color_camera_box))
+    camera_box.setComment("Cameras")
+    camera_box.fitAroundContents()
+    node_list.update({"camera_box" : camera_box})
+
     # set output network box
     nodes_in_output_box = ["scale_up1", "config_layer1", "usd_rop1"]
     output_box = lopnet.createNetworkBox()
+    output_box.setName("output_box")
     for node in nodes_in_output_box:
         output_box.addItem(node_list[node])
     output_box.setColor(hou.Color(color_output_box))
