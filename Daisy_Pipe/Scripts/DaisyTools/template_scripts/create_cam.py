@@ -129,6 +129,7 @@ def create_cam(input_node, input_network_box):
 
     # set display flag
     cam1.setDisplayFlag(True)
+    return cam1
 
 
 nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
