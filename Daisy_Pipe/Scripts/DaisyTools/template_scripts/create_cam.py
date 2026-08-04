@@ -25,19 +25,18 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, time
-from pxr import Usd, UsdGeom
+import hou
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 
 print("execute create_cam.py\n\n")
 
 # title
-try:
-    from Scripts.DaisyTools.core.ascii_art import print_title
-    print_title()
-except:
-    print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
+# try:
+#     from Scripts.DaisyTools.core.ascii_art import print_title
+#     print_title()
+# except:
+#     print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
 
 
 
@@ -65,13 +64,11 @@ project_path = project_path.removesuffix("/03_Production/Shots")
 sequence_name = shot_entity["sequence"]
 shot_name = shot_entity["shot"]
 
-digit_number = 3 # number of digits in the seq and sht names
-
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def create_cam(input_node, input_network_box):
+def create_cam(input_node, input_network_box, digit_number):
     # detect all cameras and get the last one well named
     cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
     last_cam_shot_number = 0
@@ -141,4 +138,4 @@ for null in nulls_in_scene:
 
 box_input = hou.node("/stage").findNetworkBox("/stage/camera_box")
 
-create_cam(null_input, box_input)
+# create_cam(null_input, box_input, digit_number)
