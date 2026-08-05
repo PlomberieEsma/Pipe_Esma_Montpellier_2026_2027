@@ -31,15 +31,6 @@ from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 
 print("execute create_cam.py\n\n")
 
-# title
-# try:
-#     from Scripts.DaisyTools.core.ascii_art import print_title
-#     print_title()
-# except:
-#     print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
-
-
-
 class Error(Exception):
     # use to raise errors in the script
     pass
@@ -51,13 +42,9 @@ class Error(Exception):
 core = get_core()
 info = get_entity_info()
 
-usd_file_format = "usda"
 
-shot_path = info["path"]
 seq_and_sht_name = info["name"]
 shot_entity = info["entity"]
-shot_task = info["task"]
-shot_version = core.products.getNextAvailableVersion(entity=shot_entity, product=shot_task)
 project_path = core.sequencePath.replace("\\", "/")
 project_path = project_path.removesuffix("/03_Production/Shots")
 
@@ -69,6 +56,17 @@ shot_name = shot_entity["shot"]
 ##########################################################################################################################################
 
 def create_cam(input_node, input_network_box, digit_number):
+    #-----------------------------------------------------------------------------------------------#
+    # detect all cameras, get the last one well named and create a new one                          #
+    # set name and path of the new camera                                                           #
+    #                                                                                               #
+    # input_node = the node just before the camera section                                          #
+    # input_network_box = the network box containing the cameras                                    #
+    # digit_number = number of digits after the sequence and shot (e.g.: sq0020_sh0120 => 4 digits) #
+    #                                                                                               #
+    # return the camera created                                                                     #
+    #-----------------------------------------------------------------------------------------------#
+
     # detect all cameras and get the last one well named
     cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
     last_cam_shot_number = 0
@@ -126,16 +124,6 @@ def create_cam(input_node, input_network_box, digit_number):
 
     # set display flag
     cam1.setDisplayFlag(True)
+
     return cam1
 
-
-nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
-null_input = None
-for null in nulls_in_scene:
-    if null.name() == "cameras":
-        null_input = null
-        break
-
-box_input = hou.node("/stage").findNetworkBox("/stage/camera_box")
-
-# create_cam(null_input, box_input, digit_number)
