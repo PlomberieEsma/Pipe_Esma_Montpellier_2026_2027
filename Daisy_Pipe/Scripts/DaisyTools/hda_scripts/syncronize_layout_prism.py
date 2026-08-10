@@ -1,0 +1,144 @@
+#                           .=     ,        =.
+#                   _  _   /'/    )\,/,/(_   \ \
+#                    `//-.|  (  ,\\)\//\)\/_  ) |
+#                    //___\   `\\\/\\/\/\\///'  /
+#                 ,-"~`-._ `"--'_   `"'"`  _ \`'"~-,_
+#                 \       `-.  '_`.      .'_` \ ,-"~`/
+#                  `.__.-'`/  ( -\        /- )|-.__,'
+#                    ||   |    \ O)  /^\ (O / |
+#                    `\\  |         /   `\    /
+#                      \\  \       /      `\ /
+#                       `\\ `-.  /' .---.--.\
+#                         `\\/`~(, '()      ('
+#                          /(O) \\   _,.-.,_)
+#                         //  \\ `\'`      /
+#                        / |  ||   `""'"~"`
+#                      /'  |__||
+#                            `o
+#      ___       _                    _          ___               
+#     / _ \___ _(_)__ __ __     ___  (_)__  ___ / (_)__  ___       
+#    / // / _ `/ (_-</ // /    / _ \/ / _ \/ -_) / / _ \/ -_)      
+#   /____/\_,_/_/___/\_, /    / .__/_/ .__/\__/_/_/_//_/\__/       
+#                   /___/    /_/    /_/                            
+#
+#   by Noa Escourbanies, Leeloo Trinh-Thieu and Thomas Rubio
+#   art by Joan G. Stark (Spunk)
+
+#import modules
+import hou, os
+from Scripts.DaisyTools.core.core import get_core
+from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+
+print("execute syncronize_layout_prism.py\n\n")
+
+# title
+try:
+    from Scripts.DaisyTools.core.ascii_art import print_title
+    print_title()
+except:
+    print("\nDaisy Pipeline\n\nby Noa Escourbanies, Leeloo Trinh-Thieu et Thomas Rubio\n\n")
+
+
+
+class Error(Exception):
+    # use to raise errors in the script
+    pass
+
+##########################################################################################################################################
+#=========================================================== SET VARIABLES ===============================================================
+##########################################################################################################################################
+
+digit_number = 3 # number of digits in the seq and sht names
+
+core = get_core()
+info = get_entity_info()
+
+usd_file_format = "usda"
+
+shot_path = info["path"]
+seq_and_sht_name = info["name"]
+shot_entity = info["entity"]
+shot_task = info["task"]
+shot_version = core.products.getNextAvailableVersion(entity=shot_entity, product=shot_task)
+project_path = core.sequencePath.replace("\\", "/")
+project_path = project_path.removesuffix("/03_Production/Shots")
+
+sequence_name = shot_entity["sequence"]
+shot_name = shot_entity["shot"]
+
+##########################################################################################################################################
+#=========================================================== SET FUNCTIONS ===============================================================
+##########################################################################################################################################
+
+#============================================================ get from prism ============================================================#
+
+def get_from_prism(kwargs):
+    print("get_from_prism")
+
+#============================================================= push to prism ============================================================#
+
+def push_to_prism(kwargs):
+    #---------------------------------------------------------------#
+    # Check what to do when Push to Prism is clicked                #
+    # launch the write function to add or omit a shot in Prism      #
+    #                                                               #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
+    #---------------------------------------------------------------#
+
+    prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
+    prism_shots = os.listdir(prism_sequence)
+
+    hou_node = kwargs["node"]
+    hou_shots = []
+
+    for i in range(hou_node.parm("shot_number").eval()):
+        hou_shots.append(hou_node.parm(f"sh_name{i+1}").eval())
+        hou_shots[i] = hou_shots[i][-digit_number-2:]
+
+    for hou_shot in hou_shots:
+        if hou_shot not in prism_shots:
+            # print(f"{hou_shot} doesn't exist in Prism")
+            create_prism_shot(hou_shot)
+    for prism_shot in prism_shots:
+        if prism_shot == "MASTER":
+            continue
+
+        if prism_shot not in hou_shots:
+            # print(f"{prism_shot} doesn't exist in Houdini")
+            omit_prism_shot(prism_shot)
+
+
+
+def create_prism_shot(shot_name):
+    #-----------------------------------------------#
+    # Create new shot in Prism and in the pipe      #
+    # create it from HDA node informations          #
+    #                                               #
+    # shot_name : name of the shot (e.g.: sh053)    #
+    #-----------------------------------------------#
+
+    current_framerange = list(core.getFrameRange())
+    entity={"type": "shot", "sequence": str(sequence_name), "shot": str(shot_name)}
+
+    core.entities.createShot(
+    entity = entity,
+    frameRange=current_framerange)
+
+    print(f"create {shot_name} in Prism")
+
+def omit_prism_shot(shot_name):
+    #-----------------------------------------------#
+    # Omit the shot in Prism                        #
+    #                                               #
+    # shot_name : name of the shot (e.g.: sh053)    #
+    #-----------------------------------------------#
+    
+    sequence_entities = core.entities.getShotsFromSequence(sequence_name)
+
+    for entity in sequence_entities:
+        entity_name = core.entities.getShotName(entity)
+        if entity_name[-digit_number-2:] == shot_name:
+            print(f"omit {shot_name} in Prism")
+            core.entities.omitEntity(entity)
+            # print(f"isShotOmitted : {core.entities.isShotOmitted(entity)}")
+

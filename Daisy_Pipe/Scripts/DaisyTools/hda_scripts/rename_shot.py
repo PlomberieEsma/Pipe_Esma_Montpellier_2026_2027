@@ -53,7 +53,7 @@ class Error(Exception):
 digit_number = 3 # number of digits in the seq and sht names
 
 ##########################################################################################################################################
-#=========================================================== SET FUNCTIONS ===============================================================
+#============================================================ SET CLASSES ================================================================
 ##########################################################################################################################################
 
 class PaddedSpinBox(qt.QSpinBox):
@@ -70,52 +70,33 @@ class PaddedSpinBox(qt.QSpinBox):
         # Format integer with leading zeros (e.g., 001, 042)
         return f"{value:0{self._digits}d}"
 
-def button_action(kwargs, new_shot_name):
-    #-----------------------------------------------------------------------------------#
-    # Set and applies the new values for the shot name                                  #
-    # (the HDA shot name, the camera primpath, the HDA camera path and the camera name) #
-    #                                                                                   #
-    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                     #
-    # new_shot_name = number set in the window                                          #
-    #-----------------------------------------------------------------------------------#
+##########################################################################################################################################
+#=========================================================== SET FUNCTIONS ===============================================================
+##########################################################################################################################################
 
-    new_shot_name = f"{new_shot_name:0{digit_number}d}"
+def rename_shot(kwargs):
+    #-------------------------------------------------------------------------------------------#
+    # Launch the window creation to rename the selected shot and place it next to the cursor    #
+    #                                                                                           #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                             #
+    #-------------------------------------------------------------------------------------------#
 
-    #-------------------------------- set new values ---------------------------------#
-    node = kwargs["node"]
-    camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])
-    camera_path_content = camera_path.eval()
+    current_shot_name = kwargs["node"].parm("sh_name"+kwargs["script_multiparm_index"]).eval()
 
-    splited_camera_path = camera_path_content.split("/")
-    camera_name = splited_camera_path[-1]
+    window = renaming_window(
+        kwargs,
+        current_shot_name = current_shot_name
+        )
 
-    sq_and_sh_name = camera_name.replace("cam_", "").replace("_", " ")
+    # move to mouse cursor
+    cursor_position = qg.QCursor.pos()
+    window.move(
+        cursor_position.x()-(window.width()*0.75),
+        cursor_position.y()+30
+        )
 
-    new_camera_name = camera_name.replace(camera_name[-digit_number:], new_shot_name)
-    new_camera_path = camera_path_content.replace(camera_name, new_camera_name)
-    new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number:], new_shot_name)
-
-    #-------------------------------- apply new values ---------------------------------#
-    # apply to shot name in the HDA
-    node.parm("sh_name"+kwargs["script_multiparm_index"]).set(new_sq_and_sh_name)
-
-    # get all well named cameras in the scene
-    cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
-    if cameras_in_scene != ():
-        cameras_in_scene = list(cameras_in_scene)
-        loop_count = 0
-        for camera in cameras_in_scene:
-            if camera.parm("primpath").eval() == camera_path_content:
-
-                # apply to camera name
-                camera.setName(new_camera_name)
-
-            loop_count += 1
-
-    # apply to camera selection in the HDA and camera primpath
-    camera_path.set(new_camera_path)
-
-    print(f"rename shot : \n{sq_and_sh_name} to\n{new_sq_and_sh_name}")
+    # show window
+    window.show()
 
 def renaming_window(kwargs, current_shot_name):
     #-----------------------------------------------------------------------#
@@ -194,26 +175,49 @@ def renaming_window(kwargs, current_shot_name):
 
     return window
 
-def rename_shot(kwargs):
-    #-------------------------------------------------------------------------------------------#
-    # Launch the window creation to rename the selected shot and place it next to the cursor    #
-    #                                                                                           #
-    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                             #
-    #-------------------------------------------------------------------------------------------#
+def button_action(kwargs, new_shot_name):
+    #-----------------------------------------------------------------------------------#
+    # Set and applies the new values for the shot name                                  #
+    # (the HDA shot name, the camera primpath, the HDA camera path and the camera name) #
+    #                                                                                   #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                     #
+    # new_shot_name = number set in the window                                          #
+    #-----------------------------------------------------------------------------------#
 
-    current_shot_name = kwargs["node"].parm("sh_name"+kwargs["script_multiparm_index"]).eval()
+    new_shot_name = f"{new_shot_name:0{digit_number}d}"
 
-    window = renaming_window(
-        kwargs,
-        current_shot_name = current_shot_name
-        )
+    #-------------------------------- set new values ---------------------------------#
+    node = kwargs["node"]
+    camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])
+    camera_path_content = camera_path.eval()
 
-    # move to mouse cursor
-    cursor_position = qg.QCursor.pos()
-    window.move(
-        cursor_position.x()-(window.width()*0.75),
-        cursor_position.y()+30
-        )
+    splited_camera_path = camera_path_content.split("/")
+    camera_name = splited_camera_path[-1]
 
-    # show window
-    window.show()
+    sq_and_sh_name = camera_name.replace("cam_", "").replace("_", " ")
+
+    new_camera_name = camera_name.replace(camera_name[-digit_number:], new_shot_name)
+    new_camera_path = camera_path_content.replace(camera_name, new_camera_name)
+    new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number:], new_shot_name)
+
+    #-------------------------------- apply new values ---------------------------------#
+    # apply to shot name in the HDA
+    node.parm("sh_name"+kwargs["script_multiparm_index"]).set(new_sq_and_sh_name)
+
+    # get all well named cameras in the scene
+    cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
+    if cameras_in_scene != ():
+        cameras_in_scene = list(cameras_in_scene)
+        loop_count = 0
+        for camera in cameras_in_scene:
+            if camera.parm("primpath").eval() == camera_path_content:
+
+                # apply to camera name
+                camera.setName(new_camera_name)
+
+            loop_count += 1
+
+    # apply to camera selection in the HDA and camera primpath
+    camera_path.set(new_camera_path)
+
+    print(f"rename shot : \n{sq_and_sh_name} to\n{new_sq_and_sh_name}")

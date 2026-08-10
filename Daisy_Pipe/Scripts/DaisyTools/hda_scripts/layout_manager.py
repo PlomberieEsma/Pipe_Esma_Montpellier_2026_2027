@@ -118,7 +118,7 @@ def create_shot(kwargs, digit_number):
     # digit_number = number of digits after the sequence and shot (e.g.: sq0020_sh0120 => 4 digits) #
     #-----------------------------------------------------------------------------------------------#
 
-    from Scripts.DaisyTools.hda_scripts.create_cam import create_cam
+    from Daisy_Pipe.Scripts.DaisyTools.hda_scripts.create_cam import create_cam
 
     # get the input node for create_cam()
     nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
