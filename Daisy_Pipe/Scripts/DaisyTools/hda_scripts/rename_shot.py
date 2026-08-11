@@ -184,8 +184,10 @@ def button_action(kwargs, new_shot_name):
     # new_shot_name = number set in the window                                          #
     #-----------------------------------------------------------------------------------#
 
-    new_shot_name = f"{new_shot_name:0{digit_number}d}"
-
+    print(new_shot_name)
+    if kwargs["parm_name"][:11] == "rename_shot":
+        new_shot_name = f"{new_shot_name:0{digit_number}d}"
+    print(new_shot_name)
     #-------------------------------- set new values ---------------------------------#
     node = kwargs["node"]
     camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])
@@ -196,9 +198,14 @@ def button_action(kwargs, new_shot_name):
 
     sq_and_sh_name = camera_name.replace("cam_", "").replace("_", " ")
 
-    new_camera_name = camera_name.replace(camera_name[-digit_number:], new_shot_name)
+    if kwargs["parm_name"][:11] == "rename_shot":
+        new_camera_name = camera_name.replace(camera_name[-digit_number:], new_shot_name)
+        new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number:], new_shot_name)
+    else:
+        new_camera_name = camera_name.replace(camera_name[-digit_number-2:], new_shot_name)
+        new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number-2:], new_shot_name)
+
     new_camera_path = camera_path_content.replace(camera_name, new_camera_name)
-    new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number:], new_shot_name)
 
     #-------------------------------- apply new values ---------------------------------#
     # apply to shot name in the HDA

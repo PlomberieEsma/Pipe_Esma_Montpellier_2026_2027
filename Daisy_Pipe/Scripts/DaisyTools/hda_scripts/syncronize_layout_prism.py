@@ -73,14 +73,70 @@ shot_name = shot_entity["shot"]
 #============================================================ get from prism ============================================================#
 
 def get_from_prism(kwargs):
-    print("get_from_prism")
+    #---------------------------------------------------------------#
+    # Check what to do when Get from Prism is clicked               #
+    # launch the correct function to add or omit a shot in Prism    #
+    #                                                               #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
+    #---------------------------------------------------------------#
+
+    prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
+    # prism_shots = os.listdir(prism_sequence)
+    sequence_entities = core.entities.getShotsFromSequence(sequence_name)
+
+
+    prism_shots = []
+    for entity in range (len(sequence_entities)):
+        print(f"sequence_entities : " + sequence_entities[entity]["shot"])
+        print(core.entities.isShotOmitted(sequence_entities[entity]))
+        prism_shots.append(sequence_entities[entity]["shot"])
+
+    print(f"prism_shots : {prism_shots}")
+
+    hou_node = kwargs["node"]
+    hou_shots = []
+
+
+    # get HDA shot names and keep only the last part to get the same layout as prism shot names
+    for i in range(hou_node.parm("shot_number").eval()):
+        hou_shots.append(hou_node.parm(f"sh_name{i+1}").eval())
+        hou_shots[i] = hou_shots[i][-digit_number-2:]
+
+    # check if a shot is missing in both list
+    for hou_shot in hou_shots:
+        # if a shot doesn't exist in the pipe but exists in the HDA => delete shot in houdini
+        if hou_shot not in prism_shots:
+            from Scripts.DaisyTools.hda_scripts.layout_manager import delete_shot, get_cameras_in_scene
+
+            cameras_in_scene = get_cameras_in_scene()["cameras_in_scene"]
+            kwargs.update({"shot_to_delete" : f"{sequence_name} {hou_shot}"})
+
+            delete_shot(kwargs, cameras_in_scene)
+
+    shot_counter = 0
+    for prism_shot in prism_shots:
+        if prism_shot == "MASTER":
+            continue
+        # if a shot exists in the pipe but doesn't in the HDA => create shot in houdini
+        if prism_shot not in hou_shots:
+            from Scripts.DaisyTools.hda_scripts.layout_manager import create_shot
+            from Scripts.DaisyTools.hda_scripts.rename_shot import button_action
+
+            framerange = core.entities.getShotRange(sequence_entities[shot_counter])
+            shot_number = hou_node.parm("shot_number")
+            shot_number.set(hou_node.parm("shot_number").eval()+1)
+            kwargs["script_multiparm_index"] = str(kwargs["node"].parm("shot_number").eval())
+
+            create_shot(kwargs, digit_number, framerange)
+            button_action(kwargs, new_shot_name=prism_shot)
+        shot_counter += 1
 
 #============================================================= push to prism ============================================================#
 
 def push_to_prism(kwargs):
     #---------------------------------------------------------------#
     # Check what to do when Push to Prism is clicked                #
-    # launch the write function to add or omit a shot in Prism      #
+    # launch the correct function to add or omit a shot in Prism    #
     #                                                               #
     # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
     #---------------------------------------------------------------#
@@ -91,20 +147,21 @@ def push_to_prism(kwargs):
     hou_node = kwargs["node"]
     hou_shots = []
 
+    # get HDA shot names and keep only the last part to get the same layout as prism shot names
     for i in range(hou_node.parm("shot_number").eval()):
         hou_shots.append(hou_node.parm(f"sh_name{i+1}").eval())
         hou_shots[i] = hou_shots[i][-digit_number-2:]
 
+    # check if a shot is missing in both list
     for hou_shot in hou_shots:
+        # if a shot doesn't exist in the pipe but exists in the HDA => create shot in the pipe
         if hou_shot not in prism_shots:
-            # print(f"{hou_shot} doesn't exist in Prism")
             create_prism_shot(hou_shot)
     for prism_shot in prism_shots:
         if prism_shot == "MASTER":
             continue
-
+        # if a shot exists in the pipe but doesn't in the HDA => omit (hide) shot in the pipe
         if prism_shot not in hou_shots:
-            # print(f"{prism_shot} doesn't exist in Houdini")
             omit_prism_shot(prism_shot)
 
 
@@ -140,5 +197,4 @@ def omit_prism_shot(shot_name):
         if entity_name[-digit_number-2:] == shot_name:
             print(f"omit {shot_name} in Prism")
             core.entities.omitEntity(entity)
-            # print(f"isShotOmitted : {core.entities.isShotOmitted(entity)}")
 

@@ -26,6 +26,7 @@
 
 #import modules
 import hou
+from Scripts.DaisyTools.core.core import get_core
 
 print("execute layout_manager.py\n\n")
 
@@ -46,18 +47,19 @@ class Error(Exception):
 #=========================================================== SET VARIABLES ===============================================================
 ##########################################################################################################################################
 
+core = get_core()
 digit_number = 3 # number of digits in the seq and sht names
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def command_check(kwargs):
-    #-----------------------------------------------------------------------------------------------#
-    # Check what command has been used (add, delete or clear all shots) and call the right function #
-    #                                                                                               #
-    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                                 #
-    #-----------------------------------------------------------------------------------------------#
+def get_cameras_in_scene():
+    #-----------------------------------------------------------------------------------#
+    # Get well named cameras in the houdini scene                                       #
+    #                                                                                   #
+    # return the list of cameras objects and the number of well named cameras in a dict #
+    #-----------------------------------------------------------------------------------#
 
     cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
     cam_count_scene = 0
@@ -78,6 +80,19 @@ def command_check(kwargs):
 
         cam_count_scene = len(cameras_in_scene)
 
+    return {"cameras_in_scene" : cameras_in_scene,
+            "cam_count_scene" : cam_count_scene}
+
+def command_check(kwargs):
+    #-----------------------------------------------------------------------------------------------#
+    # Check what command has been used (add, delete or clear all shots) and call the right function #
+    #                                                                                               #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number"                                 #
+    #-----------------------------------------------------------------------------------------------#
+
+    cameras_in_scene = get_cameras_in_scene()["cameras_in_scene"]
+    cam_count_scene = get_cameras_in_scene()["cam_count_scene"]
+
     if int(kwargs["script_value"]) == 0:
         # if there is no shot in the HDA
         # CLEAR button
@@ -95,9 +110,11 @@ def command_check(kwargs):
     # to detect which function needs to be called
     count_difference = int(kwargs["script_value"]) - cam_count_scene
 
+    current_framerange = list(core.getFrameRange())
+
     if count_difference == 1:
         # new shot
-        create_shot(kwargs, digit_number)
+        create_shot(kwargs, digit_number, current_framerange)
     elif count_difference == -1:
         # delete shot
         delete_shot(kwargs, cameras_in_scene)
@@ -109,7 +126,7 @@ def command_check(kwargs):
 
 
 
-def create_shot(kwargs, digit_number):
+def create_shot(kwargs, digit_number, framerange):
     #-----------------------------------------------------------------------------------------------#
     # Create new shot by creating a camera and naming the HDA multiParmBlock instance               #
     # modifies the FLO and TLO multiParmBlock instances too                                         #
@@ -118,7 +135,15 @@ def create_shot(kwargs, digit_number):
     # digit_number = number of digits after the sequence and shot (e.g.: sq0020_sh0120 => 4 digits) #
     #-----------------------------------------------------------------------------------------------#
 
-    from Daisy_Pipe.Scripts.DaisyTools.hda_scripts.create_cam import create_cam
+    from Scripts.DaisyTools.hda_scripts.create_cam import create_cam
+
+    node = kwargs["node"]
+    shot_number = kwargs["script_value"]
+    print(f"framerange : {framerange}")
+
+    # mofifie script value to get the correct parameters
+    if kwargs["parm_name"] == "get_from_prism":
+        shot_number = str(kwargs["node"].parm("shot_number").eval())
 
     # get the input node for create_cam()
     nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
@@ -135,16 +160,18 @@ def create_shot(kwargs, digit_number):
 
     # modifie the HDA
     # RLO part
-    kwargs["node"].parm("sh_name"+kwargs["script_value"]).set(new_cam.name().replace("cam_", "").replace("_", " "))
-    kwargs["node"].parm("cam_selection_"+kwargs["script_value"]).set(new_cam.parm("primpath"))
+    node.parm(f"sh_name{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm(f"cam_selection_{shot_number}").set(new_cam.parm("primpath"))
+    node.parm(f"sh_framerange_{shot_number}x").set(framerange[0])
+    node.parm(f"sh_framerange_{shot_number}y").set(framerange[1])
 
     # copy shot number and name from RLO to FLO and TLO
     # FLO part
-    kwargs["node"].parm("shots_FLO").set(kwargs["node"].parm("shot_number").eval())
-    kwargs["node"].parm("sh_name_FLO_"+kwargs["script_value"]).set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm("shots_FLO").set(node.parm("shot_number").eval())
+    node.parm(f"sh_name_FLO_{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
     # TLO part
-    kwargs["node"].parm("shots_TLO").set(kwargs["node"].parm("shot_number").eval())
-    kwargs["node"].parm("sh_name_TLO_"+kwargs["script_value"]).set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm("shots_TLO").set(node.parm("shot_number").eval())
+    node.parm(f"sh_name_TLO_{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
 
     print("add "+new_cam.name().replace("cam_", ""))
 
@@ -159,9 +186,25 @@ def delete_shot(kwargs, cameras_in_scene):
 
     block = kwargs["node"]
     block_number = block.parm("shot_number").eval()
+    add_to_block_number = 1 if kwargs["parm_name"] != "get_from_prism" else 0
 
-    for i in range(block_number+1):
+    for i in range(block_number+add_to_block_number):
         # loop into all shots in the HDA
+
+        # when it comes from get from prism button
+        if kwargs["parm_name"] == "get_from_prism" and kwargs["shot_to_delete"] == block.parm(f"sh_name{i+1}").eval():
+            # the shot has been deleted
+            print("del "+cameras_in_scene[i].name().replace("cam_", ""))
+            # delete the corresponding camera node
+            cameras_in_scene[i].destroy()
+
+            # delete shot for RLO, FLO and TLO
+            block.parm("shot_number").removeMultiParmInstance(i)
+            block.parm("shots_FLO").removeMultiParmInstance(i)
+            block.parm("shots_TLO").removeMultiParmInstance(i)
+            break
+
+        # when it comes from delete button
         try:
             if cameras_in_scene[i].parm("primpath").eval() == block.parm(f"cam_selection_{i+1}").eval():
                 # it's ok
