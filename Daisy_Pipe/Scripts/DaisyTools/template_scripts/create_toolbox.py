@@ -1,6 +1,7 @@
-import hou
+import hou # type: ignore
+from typing import Any
 
-def create_toolbox(node_name_list = [], coordinates = [0,0]):
+def create_toolbox(node_name_list: list = [], coordinates: list[int] = [0,0]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------------------#
     # Creates a network box named "Toolbox" to add some usefull nodes               #

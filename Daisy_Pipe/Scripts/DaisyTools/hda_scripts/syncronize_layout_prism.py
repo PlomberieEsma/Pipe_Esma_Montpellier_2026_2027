@@ -25,7 +25,6 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, os
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 
@@ -52,6 +51,8 @@ digit_number = 3 # number of digits in the seq and sht names
 
 core = get_core()
 info = get_entity_info()
+assert core is not None
+assert info is not None
 
 usd_file_format = "usda"
 
@@ -72,7 +73,7 @@ shot_name = shot_entity["shot"]
 
 #============================================================ get from prism ============================================================#
 
-def get_from_prism(kwargs):
+def get_from_prism(kwargs: dict[str,str]):
     #---------------------------------------------------------------#
     # Check what to do when Get from Prism is clicked               #
     # launch the correct function to add or omit a shot in Prism    #
@@ -80,27 +81,20 @@ def get_from_prism(kwargs):
     # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
     #---------------------------------------------------------------#
 
-    prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
-    # prism_shots = os.listdir(prism_sequence)
     sequence_entities = core.entities.getShotsFromSequence(sequence_name)
+    hou_node = kwargs["node"]
 
-
+    # set prism shot names in a list
     prism_shots = []
     for entity in range (len(sequence_entities)):
-        print(f"sequence_entities : " + sequence_entities[entity]["shot"])
-        print(core.entities.isShotOmitted(sequence_entities[entity]))
         prism_shots.append(sequence_entities[entity]["shot"])
 
-    print(f"prism_shots : {prism_shots}")
-
-    hou_node = kwargs["node"]
-    hou_shots = []
-
-
     # get HDA shot names and keep only the last part to get the same layout as prism shot names
+    hou_shots = []
     for i in range(hou_node.parm("shot_number").eval()):
         hou_shots.append(hou_node.parm(f"sh_name{i+1}").eval())
         hou_shots[i] = hou_shots[i][-digit_number-2:]
+
 
     # check if a shot is missing in both list
     for hou_shot in hou_shots:
@@ -133,7 +127,7 @@ def get_from_prism(kwargs):
 
 #============================================================= push to prism ============================================================#
 
-def push_to_prism(kwargs):
+def push_to_prism(kwargs: dict[str,str]):
     #---------------------------------------------------------------#
     # Check what to do when Push to Prism is clicked                #
     # launch the correct function to add or omit a shot in Prism    #
@@ -141,32 +135,46 @@ def push_to_prism(kwargs):
     # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
     #---------------------------------------------------------------#
 
-    prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
-    prism_shots = os.listdir(prism_sequence)
-
+    # prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
+    # prism_shots = os.listdir(prism_sequence)
+    sequence_entities = core.entities.getShotsFromSequence(sequence_name)
     hou_node = kwargs["node"]
-    hou_shots = []
+
+    # set prism shot names in a list
+    prism_shots = []
+    for entity in range (len(sequence_entities)):
+        prism_shots.append(sequence_entities[entity]["shot"])
 
     # get HDA shot names and keep only the last part to get the same layout as prism shot names
+    hou_shots = []
     for i in range(hou_node.parm("shot_number").eval()):
         hou_shots.append(hou_node.parm(f"sh_name{i+1}").eval())
         hou_shots[i] = hou_shots[i][-digit_number-2:]
 
+
     # check if a shot is missing in both list
+    hou_shot_counter = 1
     for hou_shot in hou_shots:
         # if a shot doesn't exist in the pipe but exists in the HDA => create shot in the pipe
         if hou_shot not in prism_shots:
-            create_prism_shot(hou_shot)
+            framerange = []
+            framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}x").eval())
+            framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}y").eval())
+            create_prism_shot(framerange, hou_shot)
+        hou_shot_counter += 1
+
+    prism_shot_counter = 0
     for prism_shot in prism_shots:
         if prism_shot == "MASTER":
             continue
         # if a shot exists in the pipe but doesn't in the HDA => omit (hide) shot in the pipe
         if prism_shot not in hou_shots:
             omit_prism_shot(prism_shot)
+        prism_shot_counter += 1
 
 
 
-def create_prism_shot(shot_name):
+def create_prism_shot(framerange: list[int], shot_name: str):
     #-----------------------------------------------#
     # Create new shot in Prism and in the pipe      #
     # create it from HDA node informations          #
@@ -174,16 +182,15 @@ def create_prism_shot(shot_name):
     # shot_name : name of the shot (e.g.: sh053)    #
     #-----------------------------------------------#
 
-    current_framerange = list(core.getFrameRange())
     entity={"type": "shot", "sequence": str(sequence_name), "shot": str(shot_name)}
 
     core.entities.createShot(
-    entity = entity,
-    frameRange=current_framerange)
+        entity = entity,
+        frameRange=framerange)
 
     print(f"create {shot_name} in Prism")
 
-def omit_prism_shot(shot_name):
+def omit_prism_shot(shot_name: str):
     #-----------------------------------------------#
     # Omit the shot in Prism                        #
     #                                               #
@@ -197,4 +204,3 @@ def omit_prism_shot(shot_name):
         if entity_name[-digit_number-2:] == shot_name:
             print(f"omit {shot_name} in Prism")
             core.entities.omitEntity(entity)
-

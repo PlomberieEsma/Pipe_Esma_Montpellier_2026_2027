@@ -25,10 +25,11 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou
-import qtpy.QtWidgets as qt
-import qtpy.QtCore as qc
-import qtpy.QtGui as qg
+import hou # type: ignore
+from typing import Any
+import qtpy.QtWidgets as qt # type: ignore
+import qtpy.QtCore as qc # type: ignore
+import qtpy.QtGui as qg # type: ignore
 from Scripts.DaisyTools.core.core import get_core
 
 print("execute rename_shot.py\n\n")
@@ -66,7 +67,7 @@ class PaddedSpinBox(qt.QSpinBox):
         super().__init__(parent)
         self._digits = digits
 
-    def textFromValue(self, value):
+    def textFromValue(self, value: int) -> str:
         # Format integer with leading zeros (e.g., 001, 042)
         return f"{value:0{self._digits}d}"
 
@@ -74,7 +75,7 @@ class PaddedSpinBox(qt.QSpinBox):
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def rename_shot(kwargs):
+def rename_shot(kwargs: dict[str,str]):
     #-------------------------------------------------------------------------------------------#
     # Launch the window creation to rename the selected shot and place it next to the cursor    #
     #                                                                                           #
@@ -98,7 +99,7 @@ def rename_shot(kwargs):
     # show window
     window.show()
 
-def renaming_window(kwargs, current_shot_name):
+def renaming_window(kwargs: dict[str,str], current_shot_name: str) -> Any:
     #-----------------------------------------------------------------------#
     # Create the GUI window to help the user to set the new shot name       #
     #                                                                       #
@@ -134,15 +135,6 @@ def renaming_window(kwargs, current_shot_name):
     #-------------------------------- create elements ---------------------------------#
     layout = qt.QGridLayout(window)
 
-    # label title
-    # label_title = qt.QLabel()
-    # label_title.setText("Rename shot")
-    # label_title.setStyleSheet("""
-    # font-size: 20px;
-    # margin-bottom: 20px;
-    # """)
-    # layout.addWidget(label_title, 0, 0, 1, 2)
-
     # label
     label = qt.QLabel()
     label.setText(current_shot_name.replace(current_shot_name[-digit_number:], ""))
@@ -175,7 +167,7 @@ def renaming_window(kwargs, current_shot_name):
 
     return window
 
-def button_action(kwargs, new_shot_name):
+def button_action(kwargs: dict[str,str], new_shot_name: str):
     #-----------------------------------------------------------------------------------#
     # Set and applies the new values for the shot name                                  #
     # (the HDA shot name, the camera primpath, the HDA camera path and the camera name) #
@@ -184,10 +176,9 @@ def button_action(kwargs, new_shot_name):
     # new_shot_name = number set in the window                                          #
     #-----------------------------------------------------------------------------------#
 
-    print(new_shot_name)
     if kwargs["parm_name"][:11] == "rename_shot":
         new_shot_name = f"{new_shot_name:0{digit_number}d}"
-    print(new_shot_name)
+
     #-------------------------------- set new values ---------------------------------#
     node = kwargs["node"]
     camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])

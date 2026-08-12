@@ -26,8 +26,10 @@
 
 
 #import modules
-import hou, time
-from pxr import Usd, UsdGeom
+import hou # type: ignore
+from time import perf_counter
+from typing import Any
+from pxr import Usd, UsdGeom # type: ignore
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
@@ -55,6 +57,8 @@ usd_file_format = "usda"
 
 core = get_core()
 info = get_entity_info()
+assert core is not None
+assert info is not None
 
 asset_name = info["name"]
 asset_entity = info["entity"]
@@ -78,14 +82,14 @@ color_output_box = [0.86, 0.85, 0.72]
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def template_shading():
+def template_shading() -> Any:
 
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the Shading department    #
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
-    start_counter = time.perf_counter()
+    start_counter = perf_counter()
 
     #-------------------------------- create nodes ---------------------------------#
     lopnet=hou.node("/stage")
@@ -252,7 +256,7 @@ def template_shading():
                                      "editmaterial"], [-10,0]))
 
 
-    elapsed_counter = time.perf_counter() - start_counter
+    elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
 
     return node_list

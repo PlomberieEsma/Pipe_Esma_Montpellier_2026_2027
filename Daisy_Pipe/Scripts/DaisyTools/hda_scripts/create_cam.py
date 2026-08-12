@@ -25,7 +25,8 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou
+import hou # type: ignore
+from typing import Any
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 
@@ -41,7 +42,8 @@ class Error(Exception):
 
 core = get_core()
 info = get_entity_info()
-
+assert core is not None
+assert info is not None
 
 seq_and_sht_name = info["name"]
 shot_entity = info["entity"]
@@ -55,7 +57,7 @@ shot_name = shot_entity["shot"]
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def create_cam(input_node, input_network_box, digit_number):
+def create_cam(input_node: Any, input_network_box: Any, digit_number: int) -> Any:
     #-----------------------------------------------------------------------------------------------#
     # detect all cameras, get the last one well named and create a new one                          #
     # set name and path of the new camera                                                           #
@@ -126,4 +128,3 @@ def create_cam(input_node, input_network_box, digit_number):
     cam1.setDisplayFlag(True)
 
     return cam1
-

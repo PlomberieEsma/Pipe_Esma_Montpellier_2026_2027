@@ -25,8 +25,10 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, time
-from pxr import Usd, UsdGeom
+import hou # type: ignore
+from time import perf_counter
+from typing import Any
+from pxr import Usd, UsdGeom # type: ignore
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
@@ -52,6 +54,8 @@ class Error(Exception):
 
 core = get_core()
 info = get_entity_info()
+assert core is not None
+assert info is not None
 
 usd_file_format = "usda"
 
@@ -87,7 +91,7 @@ imported_assets = [
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def nodes_import_assets(imported_assets, input):
+def nodes_import_assets(imported_assets: list[dict[str,str]], input: Any) -> dict[str,Any]:
 
     #-------------------------------------------------------------------------------#
     # Creates a bunch of nodes to import and assemble assets                        #
@@ -196,14 +200,14 @@ def nodes_import_assets(imported_assets, input):
 
     return node_list
 
-def nodes_template_set_dress(imported_assets):
+def nodes_template_set_dress(imported_assets: list[dict[str,Any]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the Set Dress department  #
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
-    start_counter = time.perf_counter()
+    start_counter = perf_counter()
 
     node_list = {}
 
@@ -296,7 +300,7 @@ def nodes_template_set_dress(imported_assets):
                                      "edit"], [-15,0]))
 
 
-    elapsed_counter = time.perf_counter() - start_counter
+    elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
 
     return node_list

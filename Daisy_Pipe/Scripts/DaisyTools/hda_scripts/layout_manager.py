@@ -25,7 +25,8 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou
+import hou # type: ignore
+from typing import Any
 from Scripts.DaisyTools.core.core import get_core
 
 print("execute layout_manager.py\n\n")
@@ -54,7 +55,7 @@ digit_number = 3 # number of digits in the seq and sht names
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def get_cameras_in_scene():
+def get_cameras_in_scene() -> dict[str,Any]:
     #-----------------------------------------------------------------------------------#
     # Get well named cameras in the houdini scene                                       #
     #                                                                                   #
@@ -83,7 +84,7 @@ def get_cameras_in_scene():
     return {"cameras_in_scene" : cameras_in_scene,
             "cam_count_scene" : cam_count_scene}
 
-def command_check(kwargs):
+def command_check(kwargs: dict[str,str]):
     #-----------------------------------------------------------------------------------------------#
     # Check what command has been used (add, delete or clear all shots) and call the right function #
     #                                                                                               #
@@ -111,6 +112,8 @@ def command_check(kwargs):
     count_difference = int(kwargs["script_value"]) - cam_count_scene
 
     current_framerange = list(core.getFrameRange())
+    for i in range (len(current_framerange)):
+        current_framerange[i] = int(current_framerange[i])
 
     if count_difference == 1:
         # new shot
@@ -126,7 +129,7 @@ def command_check(kwargs):
 
 
 
-def create_shot(kwargs, digit_number, framerange):
+def create_shot(kwargs: dict[str,str], digit_number: int, framerange: list[int]):
     #-----------------------------------------------------------------------------------------------#
     # Create new shot by creating a camera and naming the HDA multiParmBlock instance               #
     # modifies the FLO and TLO multiParmBlock instances too                                         #
@@ -139,7 +142,6 @@ def create_shot(kwargs, digit_number, framerange):
 
     node = kwargs["node"]
     shot_number = kwargs["script_value"]
-    print(f"framerange : {framerange}")
 
     # mofifie script value to get the correct parameters
     if kwargs["parm_name"] == "get_from_prism":
@@ -175,7 +177,7 @@ def create_shot(kwargs, digit_number, framerange):
 
     print("add "+new_cam.name().replace("cam_", ""))
 
-def delete_shot(kwargs, cameras_in_scene):
+def delete_shot(kwargs: dict[str,str], cameras_in_scene: Any):
     #-------------------------------------------------------------------#
     # Delete a camera by getting the shot deleted in the multiParmBlock #
     # modifies the FLO and TLO multiParmBlock instances too             #
@@ -230,7 +232,7 @@ def delete_shot(kwargs, cameras_in_scene):
             block.parm("shots_TLO").removeMultiParmInstance(i)
             break
 
-def issue_correction(kwargs):
+def issue_correction(kwargs: dict[str,str]):
     #---------------------------------------------------------------------------#
     # In case of node deletion without deleting the shot in multiParmBlock :    #
     # delete multiParmBlock instances which have empty "cam_selection_#" field  #
@@ -260,4 +262,3 @@ def issue_correction(kwargs):
                 removed = True
         except Exception as e:
             print(f"Error : {e}")
-
