@@ -25,8 +25,11 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, os, argparse, time
-from pxr import Usd, UsdGeom
+import hou # type: ignore
+import os, argparse
+from time import perf_counter
+from typing import Any
+from pxr import Usd, UsdGeom # type: ignore
 
 print("execute create_asset.py\n\n")
 
@@ -84,7 +87,7 @@ print(f"tasks : {tasks}")
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def mod_detect(tasks):
+def mod_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-------------------------------------------------------#
     # Detect if there is a ModH and/or a ModL,              #
@@ -118,7 +121,7 @@ def mod_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mod_level
 
-def grm_detect(tasks):
+def grm_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-----------------------------------------------------------#
     # Detect if there is a groom and a groom proxy,             #
@@ -155,7 +158,7 @@ def grm_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_grm_level
 
-def mtl_detect(tasks):
+def mtl_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-----------------------------------------------------------#
     # Detect if there is a material (of geo),                   #
@@ -180,7 +183,7 @@ def mtl_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mtl_level
 
-def mtl_groom_detect(tasks):
+def mtl_groom_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Detect if there is a material (of groom),                         #
@@ -205,7 +208,7 @@ def mtl_groom_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mtl_groom_level
 
-def variant_list(departement, string_to_detect, tasks):
+def variant_list(departement: str, string_to_detect: str, tasks: list[str]) -> dict[str,Any]:
 
     #---------------------------------------------------------------#
     # Detect if there are variants for the associated department,   #
@@ -272,7 +275,7 @@ def variant_list(departement, string_to_detect, tasks):
 #============================================================== HOUDINI ==================================================================
 ##########################################################################################################################################
 
-def nodes_var_geo(tasks, asset_name, node_input, detections):
+def nodes_var_geo(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Create nodes for each geo variant                                 #
@@ -526,7 +529,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
                "set_geo_extents" : set_geo_extents}
     return outputs
 
-def nodes_var_grm(tasks, asset_name, node_input, detections):
+def nodes_var_grm(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Create nodes for each groom variant                               #
@@ -687,7 +690,7 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
         outputs.update({"begin_var_grm" : begin_var_grm, "add_grm_var" : add_grm_var})
     return outputs
 
-def nodes_var_mtl(tasks, asset_name, node_input, detections):
+def nodes_var_mtl(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-----------------------------------------------------------------------------------------------------------#
     # create nodes for each material variant (for geo and groom)                                                #
@@ -845,7 +848,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
 # ---------------------------------------- departements ------------------------------------------------
 
-def nodes_geo(tasks, asset_name, detetcions, meters_per_unit):
+def nodes_geo(tasks: list[str], asset_name: str, detetcions: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create geo nodes                                                  #
@@ -895,7 +898,7 @@ def nodes_geo(tasks, asset_name, detetcions, meters_per_unit):
     outputs.update(nodes_var_geo_list)
     return outputs
 
-def nodes_groom(tasks, asset_name, input_nodes, detections, meters_per_unit):
+def nodes_groom(tasks: list[str], asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create groom nodes                                                #
@@ -943,7 +946,7 @@ def nodes_groom(tasks, asset_name, input_nodes, detections, meters_per_unit):
     outputs.update(nodes_var_grm_list)
     return outputs
 
-def nodes_mtl(tasks, asset_name, input_nodes, detections, meters_per_unit):
+def nodes_mtl(tasks: list[str], asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create material nodes                                             #
@@ -1001,7 +1004,7 @@ def nodes_mtl(tasks, asset_name, input_nodes, detections, meters_per_unit):
     outputs.update(nodes_var_mtl_list["outputs"])
     return outputs
 
-def nodes_payload(asset_name, input_nodes, detections, meters_per_unit):
+def nodes_payload(asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create payload nodes                                              #
@@ -1084,7 +1087,7 @@ def nodes_payload(asset_name, input_nodes, detections, meters_per_unit):
                "loft_payload_info1" : loft_payload_info1}
     return outputs
 
-def nodes_class(asset_name, input_nodes):
+def nodes_class(asset_name: str, input_nodes: dict[str,Any]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create class nodes                                                #
@@ -1115,7 +1118,7 @@ def nodes_class(asset_name, input_nodes):
                "inherit_class1" : inherit_class1}
     return outputs
 
-def nodes_metadata_write(asset_name, input_nodes, detections, meters_per_unit):
+def nodes_metadata_write(asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #---------------------------------------------------------------------------#
     # create metadata and export nodes                                          #
@@ -1175,14 +1178,14 @@ def nodes_metadata_write(asset_name, input_nodes, detections, meters_per_unit):
     return outputs
 
 
-def nodes_create_asset(tasks, asset_name):
+def nodes_create_asset(tasks: list[str], asset_name: str):
 
     #-------------------------------------------------------#
     # create the global asset creation tree                 #
     #-------------------------------------------------------#
 
 
-    start_counter = time.perf_counter()
+    start_counter = perf_counter()
 
     # set framerange to 1 to avoid writing the set extents on multiple frames
     hou.playbar.setFrameRange(1,1)
@@ -1248,7 +1251,7 @@ def nodes_create_asset(tasks, asset_name):
     hou.hipFile.save(f"{path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
     print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
 
-    elapsed_counter = time.perf_counter() - start_counter
+    elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
 
 
