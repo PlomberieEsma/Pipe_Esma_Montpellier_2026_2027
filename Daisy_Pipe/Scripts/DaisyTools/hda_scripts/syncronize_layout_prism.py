@@ -27,6 +27,7 @@
 #import modules
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+from Scripts.DaisyTools.core.framerange_convert import FramerangeFile
 
 print("execute syncronize_layout_prism.py\n\n")
 
@@ -116,7 +117,10 @@ def get_from_prism(kwargs: dict[str,str]):
             from Scripts.DaisyTools.hda_scripts.layout_manager import create_shot
             from Scripts.DaisyTools.hda_scripts.rename_shot import button_action
 
-            framerange = core.entities.getShotRange(sequence_entities[shot_counter])
+            # framerange = core.entities.getShotRange(sequence_entities[shot_counter])
+            # get framerange from a json file
+            framerange = FramerangeFile().get_master_range(sequence_name, prism_shot)
+
             shot_number = hou_node.parm("shot_number")
             shot_number.set(hou_node.parm("shot_number").eval()+1)
             kwargs["script_multiparm_index"] = str(kwargs["node"].parm("shot_number").eval())
@@ -135,8 +139,6 @@ def push_to_prism(kwargs: dict[str,str]):
     # kwargs = dict taken from the HDA multiParmBlock "shot_number" #
     #---------------------------------------------------------------#
 
-    # prism_sequence = shot_path.replace("/"+shot_entity["shot"], "")
-    # prism_shots = os.listdir(prism_sequence)
     sequence_entities = core.entities.getShotsFromSequence(sequence_name)
     hou_node = kwargs["node"]
 
@@ -157,9 +159,20 @@ def push_to_prism(kwargs: dict[str,str]):
     for hou_shot in hou_shots:
         # if a shot doesn't exist in the pipe but exists in the HDA => create shot in the pipe
         if hou_shot not in prism_shots:
-            framerange = []
-            framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}x").eval())
-            framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}y").eval())
+            hou_framerange = []
+            hou_framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}x").eval())
+            hou_framerange.append(hou_node.parm(f"sh_framerange_{hou_shot_counter}y").eval())
+
+            hou_complete_shot_name = hou_node.parm(f"sh_name{hou_shot_counter}").eval()
+            hou_splited_name = hou_complete_shot_name.split(" ")
+            hou_sequence_name = hou_splited_name[0]
+            hou_shot_name = hou_splited_name[1]
+
+            # convert framerange and get it from a json file
+            framerange_file = FramerangeFile()
+            framerange_file.set_shot(hou_sequence_name, hou_shot_name, hou_framerange)
+            framerange = framerange_file.get_shot_range(hou_sequence_name, hou_shot_name)
+
             create_prism_shot(framerange, hou_shot)
         hou_shot_counter += 1
 
@@ -182,13 +195,24 @@ def create_prism_shot(framerange: list[int], shot_name: str):
     # shot_name : name of the shot (e.g.: sh053)    #
     #-----------------------------------------------#
 
-    entity={"type": "shot", "sequence": str(sequence_name), "shot": str(shot_name)}
+    # make sure the shot is not omited
+    current_shot = core.entities.getShot(sequence_name, shot_name)
+    if current_shot != None:
+    # if the shot is omited, unomit it
+        is_omitted = core.entities.isShotOmitted(current_shot)
+        if is_omitted:
+            core.entities.omitEntity(current_shot, omit=False)
+            print(f"unomit {shot_name} in Prism")
+            core.entities.refreshOmittedEntities()
+    else:
+        # if the shot is not omited, create the shot
+        entity={"type": "shot", "sequence": str(sequence_name), "shot": str(shot_name)}
 
-    core.entities.createShot(
-        entity = entity,
-        frameRange=framerange)
+        core.entities.createShot(
+            entity = entity,
+            frameRange=framerange)
 
-    print(f"create {shot_name} in Prism")
+        print(f"create {shot_name} in Prism")
 
 def omit_prism_shot(shot_name: str):
     #-----------------------------------------------#
@@ -202,5 +226,6 @@ def omit_prism_shot(shot_name: str):
     for entity in sequence_entities:
         entity_name = core.entities.getShotName(entity)
         if entity_name[-digit_number-2:] == shot_name:
-            print(f"omit {shot_name} in Prism")
             core.entities.omitEntity(entity)
+            print(f"omit {shot_name} in Prism")
+            core.entities.refreshOmittedEntities()
