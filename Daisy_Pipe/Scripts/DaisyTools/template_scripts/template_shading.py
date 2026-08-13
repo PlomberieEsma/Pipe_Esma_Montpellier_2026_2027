@@ -26,7 +26,10 @@
 
 
 #import modules
-import hou, time
+import hou # type: ignore
+from time import perf_counter
+from typing import Any
+from pxr import Usd, UsdGeom # type: ignore
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
@@ -54,14 +57,21 @@ usd_file_format = "usda"
 
 core = get_core()
 info = get_entity_info()
+assert core is not None
+assert info is not None
 
 asset_name = info["name"]
 asset_entity = info["entity"]
 asset_path = asset_entity['asset_path'].replace("\\", "/")
 asset_task = info["task"]
 asset_version = core.products.getNextAvailableVersion(entity=asset_entity, product=asset_task)
+project_path = info["entity"]["project_path"].replace("\\", "/")
 
 env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
+
+asset_stage = Usd.Stage.Open(f"{project_path}/03_Production/Assets/{asset_path}/Export/USD/master/{asset_name}_USD_master.{usd_file_format}")
+meters_per_unit = UsdGeom.GetStageMetersPerUnit(asset_stage)
+print(f"meters per unit : {meters_per_unit}")
 
 node_position = [0,0]
 color_input_box = [0.33, 0.18, 0.44]
@@ -72,14 +82,14 @@ color_output_box = [0.86, 0.85, 0.72]
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def template_shading():
+def template_shading() -> Any:
 
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the Shading department    #
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
-    start_counter = time.perf_counter()
+    start_counter = perf_counter()
 
     #-------------------------------- create nodes ---------------------------------#
     lopnet=hou.node("/stage")
@@ -100,9 +110,9 @@ def template_shading():
     set_variant1.move(node_position)
     set_variant1.parm("num_variants").set(2)
     set_variant1.parm("variantset1").set("geo")
-    set_variant1.parm("variantname1").set("geo_var_01")
+    set_variant1.parm("variantname1").set("geo_var01")
     set_variant1.parm("variantset2").set("grm")
-    set_variant1.parm("variantname2").set("grm_var_01")
+    set_variant1.parm("variantname2").set("grm_var01")
 
     layer_break1 = lopnet.createNode("layerbreak")
     layer_break1.setName("layer_break1")
@@ -116,7 +126,7 @@ def template_shading():
     scale_down1.setInput(0, layer_break1)
     node_position[1] -= 1
     scale_down1.move(node_position)
-    scale_down1.parm("scale").set(0.01)
+    scale_down1.parm("scale").set(meters_per_unit)
 
     create_component1 = lopnet.createNode("primitive")
     create_component1.setName("create_component1")
@@ -167,7 +177,7 @@ def template_shading():
     node_position[1] -= 5
     scale_up1.move(node_position)
     scale_up1.parm("primpattern").set("`chs(\"../create_component1/primpath\")`")
-    scale_up1.parm("scale").set(100)
+    scale_up1.parm("scale").set(1/meters_per_unit)
 
     config_mtl_layer1 = lopnet.createNode("configurelayer")
     config_mtl_layer1.setName("config_mtl_layer1")
@@ -236,6 +246,8 @@ def template_shading():
                       "material_box" : material_box,
                       "output_box" : output_box})
 
+    # set display flag
+    node_list["assign_shader1"].setDisplayFlag(True)
 
     #-------------------------------- crete toolbox ---------------------------------#
     node_list.update(create_toolbox(["assignmaterial",
@@ -244,7 +256,7 @@ def template_shading():
                                      "editmaterial"], [-10,0]))
 
 
-    elapsed_counter = time.perf_counter() - start_counter
+    elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
 
     return node_list
