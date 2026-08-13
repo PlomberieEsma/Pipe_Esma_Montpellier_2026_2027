@@ -27,18 +27,19 @@
 # import modules
 import subprocess
 import json
+from typing import Any
 
 
 class Command_launcher(object):
-    def __init__(self, core, plugin):
+    def __init__(self, core: Any, plugin: Any):
         self.core = core
         self.plugin = plugin
         
     ######################################################################################################################################
-    ########################################################## SET FUNCTIONS #############################################################
+    ########################################################### SET METHODS ##############################################################
     ######################################################################################################################################
 
-    def create_asset(self, asset_name, current_entity):
+    def create_asset(self, asset_name: str, current_entity: Any):
 
         #---------------------------------------------------------------------------------------------------#
         # launch the create_asset.py script with hython in powershell                                       #
@@ -46,7 +47,6 @@ class Command_launcher(object):
         # path : path of the asset to be processed, it is passed in the command line to hython              #
         # project path : path of the project, it is passed in the command line to hython                    #
         #---------------------------------------------------------------------------------------------------#
-
 
         project_path = self.core.projectPath
         project_path = project_path.replace("\\", "/")
@@ -73,4 +73,3 @@ class Command_launcher(object):
 
         # launch command line in powershell
         subprocess.Popen(command_line)
-

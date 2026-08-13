@@ -25,7 +25,11 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
-import hou, os, argparse, time
+import hou # type: ignore
+import os, argparse
+from time import perf_counter
+from typing import Any
+from pxr import Usd, UsdGeom # type: ignore
 
 print("execute create_asset.py\n\n")
 
@@ -83,7 +87,7 @@ print(f"tasks : {tasks}")
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def mod_detect(tasks):
+def mod_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-------------------------------------------------------#
     # Detect if there is a ModH and/or a ModL,              #
@@ -117,7 +121,7 @@ def mod_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mod_level
 
-def grm_detect(tasks):
+def grm_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-----------------------------------------------------------#
     # Detect if there is a groom and a groom proxy,             #
@@ -154,7 +158,7 @@ def grm_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_grm_level
 
-def mtl_detect(tasks):
+def mtl_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-----------------------------------------------------------#
     # Detect if there is a material (of geo),                   #
@@ -179,7 +183,7 @@ def mtl_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mtl_level
 
-def mtl_groom_detect(tasks):
+def mtl_groom_detect(tasks: list[str]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Detect if there is a material (of groom),                         #
@@ -204,7 +208,7 @@ def mtl_groom_detect(tasks):
                     "str_to_detect" : string_to_detect}
     return is_mtl_groom_level
 
-def variant_list(departement, string_to_detect, tasks):
+def variant_list(departement: str, string_to_detect: str, tasks: list[str]) -> dict[str,Any]:
 
     #---------------------------------------------------------------#
     # Detect if there are variants for the associated department,   #
@@ -271,7 +275,7 @@ def variant_list(departement, string_to_detect, tasks):
 #============================================================== HOUDINI ==================================================================
 ##########################################################################################################################################
 
-def nodes_var_geo(tasks, asset_name, node_input, detections):
+def nodes_var_geo(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Create nodes for each geo variant                                 #
@@ -310,7 +314,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
             elif int(modH_list[i][-variant_digit_number:]) > int(modL_list[i][-variant_digit_number:]):
                 modH_list.insert(i, None)
             else:
-                print("ok for : " + modL_list[i])
+                pass
         except IndexError:
             if len(modH_list) > len(modL_list):
                 modL_list.append(None)
@@ -525,7 +529,7 @@ def nodes_var_geo(tasks, asset_name, node_input, detections):
                "set_geo_extents" : set_geo_extents}
     return outputs
 
-def nodes_var_grm(tasks, asset_name, node_input, detections):
+def nodes_var_grm(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # Create nodes for each groom variant                               #
@@ -686,7 +690,7 @@ def nodes_var_grm(tasks, asset_name, node_input, detections):
         outputs.update({"begin_var_grm" : begin_var_grm, "add_grm_var" : add_grm_var})
     return outputs
 
-def nodes_var_mtl(tasks, asset_name, node_input, detections):
+def nodes_var_mtl(tasks: list[str], asset_name: str, node_input: Any, detections: dict[str,dict[str,Any]]) -> dict[str,Any]:
 
     #-----------------------------------------------------------------------------------------------------------#
     # create nodes for each material variant (for geo and groom)                                                #
@@ -844,7 +848,7 @@ def nodes_var_mtl(tasks, asset_name, node_input, detections):
 
 # ---------------------------------------- departements ------------------------------------------------
 
-def nodes_geo(tasks, asset_name, detetcions):
+def nodes_geo(tasks: list[str], asset_name: str, detetcions: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create geo nodes                                                  #
@@ -884,6 +888,8 @@ def nodes_geo(tasks, asset_name, detetcions):
     config_geo_layer1.parm("setdefaultprim").set(1)
     config_geo_layer1.parm("defaultprim").set(root_name)
     config_geo_layer1.parm("flattenop").set("layer")# flatten input layers
+    config_geo_layer1.parm("setmetersperunit").set(1)
+    config_geo_layer1.parm("metersperunit").set(meters_per_unit)
 
     outputs = {"create_component1" : create_component1,
                "create_geo1" : create_geo1,
@@ -892,7 +898,7 @@ def nodes_geo(tasks, asset_name, detetcions):
     outputs.update(nodes_var_geo_list)
     return outputs
 
-def nodes_groom(tasks, asset_name, input_nodes, detections):
+def nodes_groom(tasks: list[str], asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create groom nodes                                                #
@@ -930,6 +936,8 @@ def nodes_groom(tasks, asset_name, input_nodes, detections):
     config_grm_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/grm.{usd_file_format}")
     config_grm_layer1.parm("setdefaultprim").set(1)
     config_grm_layer1.parm("defaultprim").set(root_name)
+    config_grm_layer1.parm("setmetersperunit").set(1)
+    config_grm_layer1.parm("metersperunit").set(meters_per_unit)
 
     outputs = {"layer_grm_break1" : layer_grm_break1,
                "create_grm1" : create_grm1,
@@ -938,7 +946,7 @@ def nodes_groom(tasks, asset_name, input_nodes, detections):
     outputs.update(nodes_var_grm_list)
     return outputs
 
-def nodes_mtl(tasks, asset_name, input_nodes, detections):
+def nodes_mtl(tasks: list[str], asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create material nodes                                             #
@@ -987,6 +995,8 @@ def nodes_mtl(tasks, asset_name, input_nodes, detections):
     config_mtl_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/mtl.{usd_file_format}")
     config_mtl_layer1.parm("setdefaultprim").set(1)
     config_mtl_layer1.parm("defaultprim").set(root_name)
+    config_mtl_layer1.parm("setmetersperunit").set(1)
+    config_mtl_layer1.parm("metersperunit").set(meters_per_unit)
 
     outputs = {"layer_mtl_break1" : layer_mtl_break1,
                "create_mtl1" : create_mtl1,
@@ -994,7 +1004,7 @@ def nodes_mtl(tasks, asset_name, input_nodes, detections):
     outputs.update(nodes_var_mtl_list["outputs"])
     return outputs
 
-def nodes_payload(asset_name, input_nodes, detections):
+def nodes_payload(asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create payload nodes                                              #
@@ -1053,6 +1063,8 @@ def nodes_payload(asset_name, input_nodes, detections):
     config_payload_layer1.parm("savepath").set(f"{env_var_path}/Export/USD/layers/payload.{usd_file_format}")
     config_payload_layer1.parm("setdefaultprim").set(1)
     config_payload_layer1.parm("defaultprim").set(root_name)
+    config_payload_layer1.parm("setmetersperunit").set(1)
+    config_payload_layer1.parm("metersperunit").set(meters_per_unit)
 
     ref_payload1 = lopnet.createNode("reference")
     ref_payload1.setName("ref_payload1")
@@ -1075,7 +1087,7 @@ def nodes_payload(asset_name, input_nodes, detections):
                "loft_payload_info1" : loft_payload_info1}
     return outputs
 
-def nodes_class(asset_name, input_nodes):
+def nodes_class(asset_name: str, input_nodes: dict[str,Any]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------#
     # create class nodes                                                #
@@ -1106,7 +1118,7 @@ def nodes_class(asset_name, input_nodes):
                "inherit_class1" : inherit_class1}
     return outputs
 
-def nodes_metadata_write(asset_name, input_nodes, detections):
+def nodes_metadata_write(asset_name: str, input_nodes: dict[str,Any], detections: dict[str,dict[str,Any]], meters_per_unit: float) -> dict[str,Any]:
 
     #---------------------------------------------------------------------------#
     # create metadata and export nodes                                          #
@@ -1133,7 +1145,7 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
     layer_metadata1.parm("setupaxis").set(1)
     layer_metadata1.parm("upaxis").set("y")# Y axis
     layer_metadata1.parm("setmetersperunit").set(1)
-    layer_metadata1.parm("metersperunit").set(1)
+    layer_metadata1.parm("metersperunit").set(meters_per_unit)
 
     set_default_variants1 = lopnet.createNode("setvariant")
     set_default_variants1.setName("set_default_variants1")
@@ -1166,14 +1178,14 @@ def nodes_metadata_write(asset_name, input_nodes, detections):
     return outputs
 
 
-def nodes_create_asset(tasks, asset_name):
+def nodes_create_asset(tasks: list[str], asset_name: str):
 
     #-------------------------------------------------------#
     # create the global asset creation tree                 #
     #-------------------------------------------------------#
 
 
-    start_counter = time.perf_counter()
+    start_counter = perf_counter()
 
     # set framerange to 1 to avoid writing the set extents on multiple frames
     hou.playbar.setFrameRange(1,1)
@@ -1197,32 +1209,37 @@ def nodes_create_asset(tasks, asset_name):
     detections.update({is_mtl_detect["departement"] : is_mtl_detect})
     detections.update({is_mtl_groom_detect["departement"] : is_mtl_groom_detect})
 
+    mod_to_detect = is_mod_detect["str_to_detect"]
+    mod_stage = Usd.Stage.Open(f"{path}/Export/{mod_to_detect}/master/{asset_name}_{mod_to_detect}_master.{usd_file_format}")
+    meters_per_unit = UsdGeom.GetStageMetersPerUnit(mod_stage)
+    print(f"meters per unit : {meters_per_unit}")
+
     nodes_list = {} # liste de tt les nodes
 
     # call the functions to create nodes for each department and update the nodes_list with the created nodes
 
-    nodes_geo_list = nodes_geo(tasks, asset_name, detections)
+    nodes_geo_list = nodes_geo(tasks, asset_name, detections, meters_per_unit)
     nodes_list.update(nodes_geo_list)
 
     tasks = list(tasks_save)
     nodes_grm_list = nodes_geo_list
     if is_grm:
-        nodes_grm_list = nodes_groom(tasks, asset_name, nodes_list, detections)
+        nodes_grm_list = nodes_groom(tasks, asset_name, nodes_list, detections, meters_per_unit)
         nodes_list.update(nodes_grm_list)
     
     tasks = list(tasks_save)
     nodes_mtl_list = nodes_grm_list
     if is_mtl or is_mtl_groom:
-        nodes_mtl_list = nodes_mtl(tasks, asset_name, nodes_list, detections)
+        nodes_mtl_list = nodes_mtl(tasks, asset_name, nodes_list, detections, meters_per_unit)
         nodes_list.update(nodes_mtl_list)
 
-    nodes_payload_list = nodes_payload(asset_name, nodes_list, detections)
+    nodes_payload_list = nodes_payload(asset_name, nodes_list, detections, meters_per_unit)
     nodes_list.update(nodes_payload_list)
 
     nodes_class_list = nodes_class(asset_name, nodes_list)
     nodes_list.update(nodes_class_list)
 
-    nodes_metadata_write_list = nodes_metadata_write(asset_name, nodes_list, detections)
+    nodes_metadata_write_list = nodes_metadata_write(asset_name, nodes_list, detections, meters_per_unit)
     nodes_list.update(nodes_metadata_write_list)
 
     # export the master USD file
@@ -1234,7 +1251,7 @@ def nodes_create_asset(tasks, asset_name):
     hou.hipFile.save(f"{path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
     print(f"\n\nHoudini file saved in : {path}/Scenefiles/USD/usd/{asset_name}_create_USD_master.hip")
 
-    elapsed_counter = time.perf_counter() - start_counter
+    elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
 
 
