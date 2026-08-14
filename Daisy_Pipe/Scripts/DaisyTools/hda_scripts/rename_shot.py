@@ -165,13 +165,14 @@ def renaming_window(kwargs: dict[str,str], current_shot_name: str) -> Any:
     """)
     button.clicked.connect(lambda : button_action(
         kwargs,
-        spin_box.value()
+        spin_box.value(),
+        renaming_window = window
     ))
     layout.addWidget(button, 1, 0, 1, 2)
 
     return window
 
-def button_action(kwargs: dict[str,str], new_shot_name: str):
+def button_action(kwargs: dict[str,str], new_shot_name: str, renaming_window: Any = None):
     #-----------------------------------------------------------------------------------#
     # Set and applies the new values for the shot name                                  #
     # (the HDA shot name, the camera primpath, the HDA camera path and the camera name) #
@@ -183,9 +184,13 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
     if kwargs["parm_name"][:11] == "rename_shot":
         new_shot_name = f"{new_shot_name:0{digit_number}d}"
 
+    if renaming_window != None:
+        renaming_window.close()
+
     #-------------------------------- set new values ---------------------------------#
     node = kwargs["node"]
-    camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])
+    new_shot_HDA_number = kwargs["script_multiparm_index"]
+    camera_path = node.parm(f"cam_selection_{new_shot_HDA_number}")
     camera_path_content = camera_path.eval()
 
     # get camera name
@@ -210,7 +215,9 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
 
     #-------------------------------- apply new values ---------------------------------#
     # apply to shot name in the HDA
-    node.parm("sh_name"+kwargs["script_multiparm_index"]).set(new_sq_and_sh_name)
+    node.parm(f"sh_name{new_shot_HDA_number}").set(new_sq_and_sh_name)
+    node.parm(f"sh_name_FLO_{new_shot_HDA_number}").set(new_sq_and_sh_name)
+    node.parm(f"sh_name_TLO_{new_shot_HDA_number}").set(new_sq_and_sh_name)
 
     # get all well named cameras in the scene
     cameras_in_scene = hou.lopNodeTypeCategory().nodeTypes()["camera"].instances()
@@ -230,7 +237,6 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
 
     # change shot name in Prism
     new_sh_name = new_sq_and_sh_name[-digit_number-2:]
-    print(f"{new_sh_name=}")
     try:
         selected_shot = core.entities.getShot(sq_name, sh_name)
         new_selected_shot = dict(selected_shot)
@@ -238,11 +244,12 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
             new_selected_shot.update({"shot": new_sh_name})
             core.entities.renameShot(selected_shot, new_selected_shot)
     except Exception as e:
-        print(f"Error : {e}")
-
-    # change shot name in json framerange file
-    framerange_file = FramerangeFile()
-    old_master_framerange = framerange_file.get_master_range(sq_name, sh_name)
-    framerange_file.set_shot(sq_name, new_sh_name, old_master_framerange)    
-
-    print(f"rename shot : \n{sq_and_sh_name} to\n{new_sq_and_sh_name}")
+        # if the shot doesn't exist in Prism
+        print("Unable to rename this shot in the pipeline because it deosn't exist in Prism")
+    else:
+        # change shot name in json framerange file
+        framerange_file = FramerangeFile()
+        old_master_framerange = framerange_file.get_master_range(sq_name, sh_name)
+        framerange_file.set_shot(sq_name, new_sh_name, old_master_framerange)
+    finally:
+        print(f"rename shot : \n{sq_and_sh_name} to\n{new_sq_and_sh_name}")
