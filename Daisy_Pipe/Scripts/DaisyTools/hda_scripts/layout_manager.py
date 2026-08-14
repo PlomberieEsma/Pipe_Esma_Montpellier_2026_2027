@@ -141,11 +141,12 @@ def create_shot(kwargs: dict[str,str], digit_number: int, framerange: list[int])
     from Scripts.DaisyTools.hda_scripts.create_cam import create_cam
 
     node = kwargs["node"]
-    shot_number = kwargs["script_value"]
+    # shot_number = kwargs["script_value"]
+    shot_number = node.parm("shot_number").eval()
 
-    # mofifie script value to get the correct parameters
-    if kwargs["parm_name"] == "get_from_prism":
-        shot_number = str(kwargs["node"].parm("shot_number").eval())
+    # mofifie script value to get the correct parameters if we create the shot automatically from get from Prism buton
+    # if kwargs["parm_name"] == "get_from_prism":
+    #     shot_number = str(kwargs["node"].parm("shot_number").eval())
 
     # get the input node for create_cam()
     nulls_in_scene = hou.lopNodeTypeCategory().nodeTypes()["null"].instances()
@@ -159,21 +160,22 @@ def create_shot(kwargs: dict[str,str], digit_number: int, framerange: list[int])
     box_input = hou.node("/stage").findNetworkBox("/stage/camera_box")
 
     new_cam = create_cam(null_input, box_input, digit_number)
+    new_shot_name = new_cam.name().replace("cam_", "").replace("_", " ")
 
     # modifie the HDA
     # RLO part
-    node.parm(f"sh_name{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm(f"sh_name{shot_number}").set(new_shot_name)
     node.parm(f"cam_selection_{shot_number}").set(new_cam.parm("primpath"))
     node.parm(f"sh_framerange_{shot_number}x").set(framerange[0])
     node.parm(f"sh_framerange_{shot_number}y").set(framerange[1])
 
     # copy shot number and name from RLO to FLO and TLO
     # FLO part
-    node.parm("shots_FLO").set(node.parm("shot_number").eval())
-    node.parm(f"sh_name_FLO_{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm("shots_FLO").set(shot_number)
+    node.parm(f"sh_name_FLO_{shot_number}").set(new_shot_name)
     # TLO part
-    node.parm("shots_TLO").set(node.parm("shot_number").eval())
-    node.parm(f"sh_name_TLO_{shot_number}").set(new_cam.name().replace("cam_", "").replace("_", " "))
+    node.parm("shots_TLO").set(shot_number)
+    node.parm(f"sh_name_TLO_{shot_number}").set(new_shot_name)
 
     print("add "+new_cam.name().replace("cam_", ""))
 

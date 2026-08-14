@@ -145,8 +145,6 @@ class FramerangeFile():
         # return the new file content                                                       #
         #-----------------------------------------------------------------------------------#
 
-        print(f"add {sq_name} to json file")
-
         if sq_name in self.file:
             sequence_content = self.file[sq_name]
             self.file.update({sq_name: sequence_content})
@@ -164,8 +162,6 @@ class FramerangeFile():
         #                                                                           #
         # return the new file content                                               #
         #---------------------------------------------------------------------------#
-
-        print(f"add {sh_name} to json file")
 
         f_start = range[0]
         f_end = range[1]

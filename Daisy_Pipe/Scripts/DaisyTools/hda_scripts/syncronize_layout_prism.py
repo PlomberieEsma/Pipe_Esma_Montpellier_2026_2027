@@ -117,7 +117,6 @@ def get_from_prism(kwargs: dict[str,str]):
             from Scripts.DaisyTools.hda_scripts.layout_manager import create_shot
             from Scripts.DaisyTools.hda_scripts.rename_shot import button_action
 
-            # framerange = core.entities.getShotRange(sequence_entities[shot_counter])
             # get framerange from a json file
             framerange = FramerangeFile().get_master_range(sequence_name, prism_shot)
 
@@ -128,6 +127,30 @@ def get_from_prism(kwargs: dict[str,str]):
             create_shot(kwargs, digit_number, framerange)
             button_action(kwargs, new_shot_name=prism_shot)
         shot_counter += 1
+
+def update_from_prism(kwargs: dict[str,str]):
+    #---------------------------------------------------------------------------#
+    # Syncronize a single houdini shot with Prism when Update shot is clicked   #
+    # update the framerange                                                     #
+    #                                                                           #
+    # kwargs = dict taken from the HDA multiParmBlock "shot_number"             #
+    #---------------------------------------------------------------------------#
+
+    parm_number = kwargs["parm_name"][12:]
+    hou_node = kwargs["node"]
+    shot_name = hou_node.parm(f"sh_name{parm_number}").eval()
+    shot_name = shot_name[-digit_number-2:]
+
+    # get framerange from a json file
+    framerange = FramerangeFile().get_master_range(sequence_name, shot_name)
+
+    # set new framerange in HDA
+    hou_node.parm(f"sh_framerange_{parm_number}x").set(framerange[0])
+    hou_node.parm(f"sh_framerange_{parm_number}y").set(framerange[1])
+
+    # get prism shot
+    # selected_shot = core.entities.getShot(sequence_name, shot_name)
+    # print(f"{selected_shot=}")
 
 #============================================================= push to prism ============================================================#
 
