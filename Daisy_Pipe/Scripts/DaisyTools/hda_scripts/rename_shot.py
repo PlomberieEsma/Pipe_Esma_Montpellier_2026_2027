@@ -31,6 +31,7 @@ import qtpy.QtWidgets as qt # type: ignore
 import qtpy.QtCore as qc # type: ignore
 import qtpy.QtGui as qg # type: ignore
 from Scripts.DaisyTools.core.core import get_core
+from Scripts.DaisyTools.core.framerange_convert import FramerangeFile
 
 print("execute rename_shot.py\n\n")
 
@@ -50,6 +51,9 @@ class Error(Exception):
 ##########################################################################################################################################
 #=========================================================== SET VARIABLES ===============================================================
 ##########################################################################################################################################
+
+core = get_core()
+assert core is not None
 
 digit_number = 3 # number of digits in the seq and sht names
 
@@ -137,7 +141,7 @@ def renaming_window(kwargs: dict[str,str], current_shot_name: str) -> Any:
 
     # label
     label = qt.QLabel()
-    label.setText(current_shot_name.replace(current_shot_name[-digit_number:], ""))
+    label.setText(current_shot_name[:-digit_number])
     label.setStyleSheet("""
     font-size: 20px;
     """)
@@ -184,17 +188,23 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
     camera_path = node.parm("cam_selection_"+kwargs["script_multiparm_index"])
     camera_path_content = camera_path.eval()
 
+    # get camera name
     splited_camera_path = camera_path_content.split("/")
     camera_name = splited_camera_path[-1]
 
     sq_and_sh_name = camera_name.replace("cam_", "").replace("_", " ")
 
+    splited_name = camera_name.split("_")
+    sq_name = splited_name[1]
+    sh_name = splited_name[2]
+    new_sh_name = new_shot_name
+
     if kwargs["parm_name"][:11] == "rename_shot":
-        new_camera_name = camera_name.replace(camera_name[-digit_number:], new_shot_name)
-        new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number:], new_shot_name)
+        new_sq_and_sh_name = sq_and_sh_name[:-digit_number] + new_sh_name
+        new_camera_name = "cam_" + new_sq_and_sh_name.replace(" ", "_")
     else:
-        new_camera_name = camera_name.replace(camera_name[-digit_number-2:], new_shot_name)
-        new_sq_and_sh_name = sq_and_sh_name.replace(sq_and_sh_name[-digit_number-2:], new_shot_name)
+        new_sq_and_sh_name = sq_and_sh_name[:-digit_number-2] + new_sh_name
+        new_camera_name = "cam_" + new_sq_and_sh_name.replace(" ", "_")
 
     new_camera_path = camera_path_content.replace(camera_name, new_camera_name)
 
@@ -217,5 +227,22 @@ def button_action(kwargs: dict[str,str], new_shot_name: str):
 
     # apply to camera selection in the HDA and camera primpath
     camera_path.set(new_camera_path)
+
+    # change shot name in Prism
+    new_sh_name = new_sq_and_sh_name[-digit_number-2:]
+    print(f"{new_sh_name=}")
+    try:
+        selected_shot = core.entities.getShot(sq_name, sh_name)
+        new_selected_shot = dict(selected_shot)
+        if selected_shot["shot"] != new_sh_name:
+            new_selected_shot.update({"shot": new_sh_name})
+            core.entities.renameShot(selected_shot, new_selected_shot)
+    except Exception as e:
+        print(f"Error : {e}")
+
+    # change shot name in json framerange file
+    framerange_file = FramerangeFile()
+    old_master_framerange = framerange_file.get_master_range(sq_name, sh_name)
+    framerange_file.set_shot(sq_name, new_sh_name, old_master_framerange)    
 
     print(f"rename shot : \n{sq_and_sh_name} to\n{new_sq_and_sh_name}")
