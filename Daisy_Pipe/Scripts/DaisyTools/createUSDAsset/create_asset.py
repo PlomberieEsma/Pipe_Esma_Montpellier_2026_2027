@@ -26,7 +26,7 @@
 
 #import modules
 import hou # type: ignore
-import os, argparse
+import os, argparse, json
 from time import perf_counter
 from typing import Any
 from pxr import Usd, UsdGeom # type: ignore
@@ -74,12 +74,22 @@ asset_path = args.assetPath
 project_path = args.projectPath
 env_var_path = f"$PRISM_JOB/03_Production/Assets/{asset_path}"
 
-
+print(f"{path=}")
+print(f"{asset_path=}")
+print(f"{project_path=}")
+print(f"{env_var_path=}")
 
 tasks = os.listdir(f"{path}/Export")
 tasks_save = list(tasks)
 variant_digit_number = 2
-usd_file_format = "usda"
+
+#get variables from config.json
+config_file_path = f"{project_path}00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/config.json"
+with open(config_file_path, mode="r", encoding="utf-8") as read_file:
+    config_file = json.load(read_file)
+
+usd_file_format = config_file["global"]["usd_file_format"]
+
 print("\n\n--------------------------------------------------------------------------------------------------\n\n")
 print(f"tasks : {tasks}")
 
