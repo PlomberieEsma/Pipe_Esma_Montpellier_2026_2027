@@ -172,14 +172,16 @@ class Prism_Daisy_Pipe_Functions(object):
             else:
                 return      
 
-    def onAssetBrowser(self, origin, task=None):
+    def onAssetBrowser(self, entity, task=None):
         
         #-----------------------------------------------------------------------------------#
         # Get the selected asset from the Create USD Asset option                           #
         # Launch the create asset function from Toto's script                               #
         #-----------------------------------------------------------------------------------#
 
-        self.AssetBrowserUI.onAssetBrowserTriggered(origin, task)
+        # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
+        entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
+        self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
 
 
     ##############################################################################################################

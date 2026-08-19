@@ -75,24 +75,24 @@ class AssetBrowserUI(object):
         self.core = core
         self.plugin = plugin
 
-    def onAssetBrowserTriggered(self, origin, task, checked=False):
+    def onAssetBrowserTriggered(self, entity, task, checked=False):
         
         #-----------------------------------------------------------------------------------#
         # Window Asset Browser to select assets to load into a scene during layout          #
         # If opened from Task SetDress, simple double column view                           #
         # If opened from Task RLO, the SetDress USD file is already being selected          #
-        #       only need to select Char and Props                                          #
+        #       only need to select Char and Props
+        # Entity imported for shot and sequence 
         #-----------------------------------------------------------------------------------#
 
-        entity = origin.getCurrentEntity()
-        # self.core.popup("Current entity: %s" % entity)
+        self.core.popup("Current entity: %s" % entity)
 
         try:
             allAssetPaths = self.core.entities.getAssetPaths()
             self.assetRoot = os.path.commonpath(allAssetPaths) if allAssetPaths else ""
             
-            self.assetBrowserDlg = QDialog(origin)
-            self.core.parentWindow(self.assetBrowserDlg, parent=origin)
+            self.assetBrowserDlg = QDialog()
+            self.core.parentWindow(self.assetBrowserDlg)
             self.assetBrowserDlg.setWindowTitle("Asset Browser")
             self.assetBrowserDlg.resize(700, 600)
 
@@ -276,24 +276,28 @@ class AssetBrowserUI(object):
     def onValidateAssetsBrowser(self):
          
         #-----------------------------------------------------------------------------------------#
-        # Output the list of selected asset in the Asset Browser with their path as a dictionary  #
+        # toImportAsset is the output list of selected asset in the Asset Browser                 #
+        #       with their asset_path as a dictionary                                             #
+        # Return toImportAsset                                                                    #
         #-----------------------------------------------------------------------------------------#
 
-        output = []
+        toImportAsset = []
         for entity in self.selectedAssetsData.values():
             name = entity.get("asset", "")
-            path = entity.get("paths", "")
-            output.append({"name": name, "path": path})
+            assetPath = entity.get("asset_path", "")
+            # path = entity.get("paths", "")
+            toImportAsset.append({"name": name, "asset_path": assetPath})
 
-        # Check the output before creating the scene
-        self.core.popup(f"Selected assets: {output}")
+        # Check the toImportAsset before creating the scene
+        self.core.popup(f"Selected assets: {toImportAsset}")
         self.assetBrowserDlg.hide()
-        return output
+        return toImportAsset
         
     
     def getMasterSetDress(self, entity):
         #-----------------------------------------------------------------------------------#
-        # Get the SetDress entity for the current shot                                      #
+        # Get the SetDress USD for the current shot                                         #
+        # Import entity to find the right shot                                              #
         #-----------------------------------------------------------------------------------#
 
         # Redirecting toward the master SetDress file
@@ -309,7 +313,9 @@ class AssetBrowserUI(object):
     
     def getMasterSetDressThumbnail(self, entity):
         #-----------------------------------------------------------------------------------#
-        # Get the thumbnail for the SetDress entity for the current shot                     #
+        # Get the thumbnail for the SetDress USD for the current shot                       #
+        # Import entity to find the right shot                                              #
+        # CURRENTLY NOT WORKING                                                             #
         #-----------------------------------------------------------------------------------#
         sequence = entity.get("sequence", "") if entity else ""
         shotPath = self.core.getEntityPath(entity)
