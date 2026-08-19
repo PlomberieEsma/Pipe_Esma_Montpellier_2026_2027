@@ -25,6 +25,7 @@
 #   art by Joan G. Stark (Spunk)
 
 #import modules
+import json
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.core.framerange_convert import FramerangeFile
@@ -48,14 +49,10 @@ class Error(Exception):
 #=========================================================== SET VARIABLES ===============================================================
 ##########################################################################################################################################
 
-digit_number = 3 # number of digits in the seq and sht names
-
 core = get_core()
 info = get_entity_info()
 assert core is not None
 assert info is not None
-
-usd_file_format = "usda"
 
 shot_path = info["path"]
 seq_and_sht_name = info["name"]
@@ -67,6 +64,14 @@ project_path = project_path.removesuffix("/03_Production/Shots")
 
 sequence_name = shot_entity["sequence"]
 shot_name = shot_entity["shot"]
+
+#get variables from config.json
+config_file_path = f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/config.json"
+with open(config_file_path, mode="r", encoding="utf-8") as read_file:
+    config_file = json.load(read_file)
+
+usd_file_format = config_file["global"]["usd_file_format"]
+digit_number = config_file["global"]["sh_name_digit_number"] # number of digits in the seq and sht names
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================

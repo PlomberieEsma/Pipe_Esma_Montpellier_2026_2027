@@ -26,6 +26,7 @@
 
 #import modules
 import hou # type: ignore
+import json
 from typing import Any
 from Scripts.DaisyTools.core.core import get_core
 
@@ -49,7 +50,17 @@ class Error(Exception):
 ##########################################################################################################################################
 
 core = get_core()
-digit_number = 3 # number of digits in the seq and sht names
+assert core is not None
+
+project_path = core.sequencePath.replace("\\", "/")
+project_path = project_path.removesuffix("/03_Production/Shots")
+
+#get variables from config.json
+config_file_path = f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/config.json"
+with open(config_file_path, mode="r", encoding="utf-8") as read_file:
+    config_file = json.load(read_file)
+
+digit_number = config_file["global"]["sh_name_digit_number"] # number of digits in the seq and sht names
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
