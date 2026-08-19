@@ -26,6 +26,7 @@
 
 #import modules
 import hou # type: ignore
+import json
 from time import perf_counter
 from typing import Any
 from pxr import Usd, UsdGeom # type: ignore
@@ -33,7 +34,7 @@ from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
 
-print("execute template_RLO.py\n\n")
+print("execute template_MASTER_RLO.py\n\n")
 
 # title
 try:
@@ -57,8 +58,6 @@ info = get_entity_info()
 assert core is not None
 assert info is not None
 
-usd_file_format = "usda"
-
 shot_path = info["path"]
 seq_and_sht_name = info["name"]
 shot_entity = info["entity"]
@@ -77,6 +76,12 @@ color_input_box = [0.33, 0.18, 0.44]
 color_camera_box = [0.41, 0.4, 0.64]
 color_output_box = [0.86, 0.85, 0.72]
 
+#get variables from config.json
+config_file_path = f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/config.json"
+with open(config_file_path, mode="r", encoding="utf-8") as read_file:
+    config_file = json.load(read_file)
+
+usd_file_format = config_file["global"]["usd_file_format"]
 #___________________________________________________________________________________________________________________________________________________________________________________________________
 #|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 # valeurs temporaires pour tester
@@ -210,10 +215,11 @@ def nodes_import_assets(imported_assets: list[dict[str,str]], input: Any) -> dic
 
     return node_list
 
-def nodes_template_RLO(imported_assets: list[dict[str,str]]) -> dict[str,Any]:
+def nodes_template_MASTER_RLO(imported_assets: list[dict[str,str]]) -> dict[str,Any]:
 
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the RLO department        #
+    # works only for the MASTER shot                                                #
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
@@ -351,4 +357,4 @@ def nodes_template_RLO(imported_assets: list[dict[str,str]]) -> dict[str,Any]:
 #=========================================================== CALL FUNCTIONS ==============================================================
 ##########################################################################################################################################
 
-nodes_template_RLO(imported_assets)
+nodes_template_MASTER_RLO(imported_assets)
