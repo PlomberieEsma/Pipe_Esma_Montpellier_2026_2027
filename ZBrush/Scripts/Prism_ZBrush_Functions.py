@@ -79,7 +79,7 @@ class Prism_ZBrush_Functions(object):
         pluginDir = os.path.dirname(os.path.abspath(__file__))
         watchdogZBrush = os.path.join(pluginDir, "Helpers/watchdogZBrush.py")
 
-        python_exe = self.find_prism()
+        python_exe = self.find_prism("Python313", "pythonw.exe")
 
         subprocess.Popen([python_exe, watchdogZBrush])
 
@@ -117,12 +117,11 @@ class Prism_ZBrush_Functions(object):
         ext = os.path.splitext(filepath)[1]
         self.saveCurrentFileName(filepath.replace("\\", "/"))
         if ext == ".zpr" or ext == ".ZPR":
-            command = "[FileNameSetNext, \"" + filepath.replace("\\", "/") + "\"]\n[RoutineDef, command,[IPress, File:Save as]]\n[RoutineCall,command]"
+            command = f"[FileNameSetNext, \"{filepath.replace("\\", "/")}\"]\n[RoutineDef, command,[IPress, File:Save as]]\n[RoutineCall,command]"
         elif ext == ".ztl" or ext == ".ZTL":    
-            command = "[FileNameSetNext, \"" + filepath.replace("\\", "/") + "\"]\n[RoutineDef, command,[IPress, Tool:Save As]]\n[RoutineCall,command]"
+            command = f"[FileNameSetNext, \"{filepath.replace("\\", "/")}\"]\n[RoutineDef, command,[IPress, Tool:Save As]]\n[RoutineCall,command]"
         self.send_command_to_zbrush(command)
         self.activate_zbrush()
-
 
     @err_catcher(name=__name__)
     def getImportPaths(self, origin):
@@ -649,7 +648,7 @@ class Prism_ZBrush_Functions(object):
         print("Opening settings...")
         self.core.prismSettings()
     
-    def find_prism(self):
+    def find_prism(self, python_dir_name, python_file_name):
         folders_to_scan = set()
 
         # Add Program Files and Home directories
@@ -659,6 +658,7 @@ class Prism_ZBrush_Functions(object):
         folders_to_scan.add(program_files.replace("\\", "/"))
         folders_to_scan.add(program_files_x86.replace("\\", "/"))
         folders_to_scan.add(home_dir.replace("\\", "/"))
+
 
         # Add all root drives (C:/, D:/, etc.)
         if platform.system() == "Windows":
@@ -677,7 +677,7 @@ class Prism_ZBrush_Functions(object):
                 prism_path = os.path.join(folder, prism_variant).replace("\\", "/")
                 prism_path = prism_path.replace("//", "/")
                 if os.path.isdir(prism_path):
-                    exe_path = os.path.join(prism_path, "Python311", "pythonw.exe").replace("\\", "/")
+                    exe_path = os.path.join(prism_path, python_dir_name, python_file_name).replace("\\", "/")
                     if os.path.isfile(exe_path):
                         return exe_path
 
