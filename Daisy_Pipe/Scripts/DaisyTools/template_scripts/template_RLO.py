@@ -72,7 +72,6 @@ env_var_path = f"$PRISM_JOB/03_Production/Shots/{sequence_name}/{shot_name}"
 
 node_position = [0,0]
 color_input_box = [0.33, 0.18, 0.44]
-color_camera_box = [0.41, 0.4, 0.64]
 color_output_box = [0.86, 0.85, 0.72]
 
 #get variables from config.json
@@ -86,11 +85,66 @@ usd_file_format = config_file["global"]["usd_file_format"]
 #=========================================================== SET FUNCTIONS ===============================================================
 ##########################################################################################################################################
 
-def node_template_RLO() -> dict[str,Any]:
+def python_command() -> str:
+    #-----------------------------------------------------------------------#
+    # Create a python script to place into a python lop node                #
+    # works only for the shot                                               #
+    #                                                                       #
+    # return a string containing all the cameras which are not the shot one #
+    #-----------------------------------------------------------------------#
 
+    return f"""
+cam_path_to_keep = f"/{seq_and_sht_name}/cam/cam_{seq_and_sht_name}"
+
+node = hou.pwd()
+stage = node.editableStage()
+parent_prim = stage.GetPrimAtPath(f"/{seq_and_sht_name}/cam")
+output = ""
+
+# check all /cam children to add them to the output string
+if parent_prim:
+    for child in parent_prim.GetChildren():
+        if str(child.GetPath()) == cam_path_to_keep:
+            continue
+        output += str(child.GetPath()) + " "
+else:
+    raise Error("no parent primitive named cam, check if it exists an placed as a child of the assembly prim (with sequence and shot name)")
+
+# put the output value in a custom parameter
+node_ptg = node.parmTemplateGroup()
+output_param = hou.StringParmTemplate("output_param", "Output", 1, default_value=output)
+node_ptg.append(output_param)
+node.setParmTemplateGroup(node_ptg)
+node.parm("output_param").set(output)
+"""
+
+def cam_to_delete(last_node) -> str:
+    #-----------------------------------------------------------------------#
+    # Create a python lop node to get the list of cameras to delete         #
+    # works only for the shot                                               #
+    #                                                                       #
+    # last_node: the last node in the network                               #
+    #                                                                       #
+    # return a string containing all the cameras which are not the shot one #
+    #-----------------------------------------------------------------------#
+
+    lopnet = hou.node("/stage")
+    tmp_node = lopnet.createNode('pythonscript')
+    tmp_node.setInput(0, last_node)
+    tmp_node.parm("python").set(python_command())
+    tmp_node.cook(force=True)
+
+    cam_to_delete = tmp_node.parm("output_param").eval()
+    # print(f"{cam_to_delete = }")
+
+    tmp_node.destroy()
+    return cam_to_delete
+
+def node_template_RLO() -> dict[str,Any]:
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the RLO department        #
     # works only for the shot                                                       #
+    #                                                                               #
     # return the list of all nodes in a dictionary                                  #
     #-------------------------------------------------------------------------------#
 
@@ -101,19 +155,131 @@ def node_template_RLO() -> dict[str,Any]:
     #-------------------------------- create nodes ---------------------------------#
     lopnet = hou.node("/stage")
 
-    ref_MASTER_RLO = lopnet.createNode("reference")
-    ref_MASTER_RLO.setName("ref_MASTER_RLO")
-    ref_MASTER_RLO.parm("enable").set(0)
-    # ref_MASTER_RLO.parm("num_files").set(2)
-    ref_MASTER_RLO.parm("primpath1").set(f"/{seq_and_sht_name}")
-    ref_MASTER_RLO.parm("filepath1").set(f"$PRISM_JOB/03_production/shots/{sequence_name}/MASTER/Export/RLO/master/{sequence_name}_MASTER_RLO_master.{usd_file_format}")
+    ref_MASTER_RLO1 = lopnet.createNode("reference")
+    ref_MASTER_RLO1.setName("ref_MASTER_RLO1")
+    ref_MASTER_RLO1.parm("enable").set(0)
+    ref_MASTER_RLO1.parm("primpath1").set(f"/{seq_and_sht_name}")
+    ref_MASTER_RLO1.parm("filepath1").set(f"$PRISM_JOB/03_production/shots/{sequence_name}/MASTER/Export/RLO/master/{sequence_name}_MASTER_RLO_master.{usd_file_format}")
 
-    scale_down_RLO = lopnet.createNode("xform")
-    scale_down_RLO.setName("scale_down_RLO")
-    scale_down_RLO.setInput(0, ref_MASTER_RLO)
-    scale_down_RLO.parm("scale").set(0.01)
-    scale_down_RLO.parm("primpattern").set(f"/{seq_and_sht_name}")
+    scale_down_RLO1 = lopnet.createNode("xform")
+    scale_down_RLO1.setName("scale_down_RLO1")
+    scale_down_RLO1.setInput(0, ref_MASTER_RLO1)
+    scale_down_RLO1.setColor(hou.Color(color_input_box))
+    scale_down_RLO1.parm("scale").set(0.01)
+    scale_down_RLO1.parm("primpattern").set(f"/{seq_and_sht_name}")
 
+    cameras_to_delete = cam_to_delete(ref_MASTER_RLO1)
+
+    unload_cam1 = lopnet.createNode("prune")
+    unload_cam1.setName("unload_cam1")
+    unload_cam1.setInput(0, scale_down_RLO1)
+    unload_cam1.setColor(hou.Color(color_input_box))
+    unload_cam1.parm("primpattern1").set(cameras_to_delete)
+    unload_cam1.parm("method").set("deactivate")
+
+    hide_cam1 = lopnet.createNode("configureprimitive")
+    hide_cam1.setName("hide_cam1")
+    hide_cam1.setInput(0, unload_cam1)
+    hide_cam1.setColor(hou.Color(color_input_box))
+    hide_cam1.parm("primpattern").set(cameras_to_delete)
+    hide_cam1.parm("seteditable").set(1)
+    hide_cam1.parm("editable").set(0)
+    hide_cam1.parm("setselectable").set(1)
+    hide_cam1.parm("selectable").set(0)
+    hide_cam1.parm("sethideinui").set(1)
+    hide_cam1.parm("hideinui").set(1)
+
+    unload_payloads1 = lopnet.createNode("configurestage")
+    unload_payloads1.setName("unload_payloads1")
+    unload_payloads1.setInput(0, hide_cam1)
+    unload_payloads1.setColor(hou.Color(color_input_box))
+    unload_payloads1.parm("editload").set("addremove")# add and remove primitives to load
+    unload_payloads1.parm("unloadpattern").set("*")
+
+    camera_edit1 = lopnet.createNode("camera")
+    camera_edit1.setName("camera_edit1")
+    camera_edit1.setInput(0, unload_payloads1)
+    camera_edit1.parm("primpattern").set(f"/{seq_and_sht_name}/cam/cam_{seq_and_sht_name}")
+    camera_edit1.parm("createprims").set(0)# edit
+
+    scale_up1 = lopnet.createNode("xform")
+    scale_up1.setName("scale_up1")
+    scale_up1.setInput(0, camera_edit1)
+    scale_up1.parm("primpattern").set("/*")
+    scale_up1.parm("scale").set(100)
+
+    config_layer1 = lopnet.createNode("configurelayer")
+    config_layer1.setName("config_layer1")
+    config_layer1.setInput(0, scale_up1)
+    config_layer1.parm("setsavepath").set(1)
+    config_layer1.parm("savepath").set(f"{env_var_path}/Export/{shot_task}/{shot_version}/{seq_and_sht_name}_{shot_task}_{shot_version}.{usd_file_format}")
+    config_layer1.parm("setdefaultprim").set(1)
+    config_layer1.parm("defaultprim").set(f"{seq_and_sht_name}")
+
+    usd_rop1 = lopnet.createNode("usd_rop")
+    usd_rop1.setName("usd_rop1")
+    usd_rop1.setInput(0, config_layer1)
+    usd_rop1.parm("lopoutput").set("")
+    usd_rop1.parm("postrender").set("$PRISMJOB/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/saveas/create_version_info.py")
+    usd_rop1.parm("lpostrender").set("python")
+
+    node_list.update({
+        "ref_MASTER_RLO1": ref_MASTER_RLO1,
+        "scale_down_RLO1": scale_down_RLO1,
+        "unload_cam1": unload_cam1,
+        "hide_cam1": hide_cam1,
+        "unload_payloads1": unload_payloads1,
+        "camera_edit1": camera_edit1,
+        "scale_up1": scale_up1,
+        "config_layer1": config_layer1,
+        "usd_rop1": usd_rop1
+    })
+
+    #-------------------------------- arange nodes ---------------------------------#
+    lopnet.layoutChildren()
+
+    node_list["camera_edit1"].move([0, -3])
+
+    node_list["scale_up1"].move([0, -6])
+    node_list["config_layer1"].move([0, -6])
+    node_list["usd_rop1"].move([0, -6])
+
+    # set input network box
+    nodes_in_input_box = ["ref_MASTER_RLO1", "scale_down_RLO1", "unload_cam1", "hide_cam1", "unload_payloads1"]
+    input_box = lopnet.createNetworkBox()
+    input_box.setName("input_box")
+    for node in nodes_in_input_box:
+        input_box.addItem(node_list[node])
+    input_box.setColor(hou.Color(color_input_box))
+    input_box.setComment("Input")
+    input_box.fitAroundContents()
+    node_list.update({"input_box" : input_box})
+
+    # set output network box
+    nodes_in_output_box = ["scale_up1", "config_layer1", "usd_rop1"]
+    output_box = lopnet.createNetworkBox()
+    output_box.setName("output_box")
+    for node in nodes_in_output_box:
+        output_box.addItem(node_list[node])
+    output_box.setColor(hou.Color(color_output_box))
+    output_box.setComment("Outputs")
+    output_box.fitAroundContents()
+    node_list.update({"output_box" : output_box})
+
+    # set display flag
+    node_list["unload_payloads1"].setDisplayFlag(True)
+
+    #-------------------------------- create toolbox ---------------------------------#
+    node_list.update(create_toolbox(["primitive",
+                                     "prune",
+                                     "graftbranches",
+                                     "stagemanager",
+                                     "restructurescenegraph",
+                                     "matchsize",
+                                     "xform",
+                                     "edit",
+                                     "followpathconstraint"], [-15,0]))
+    
     elapsed_counter = perf_counter() - start_counter
     print(f"\n\nTotal time: {elapsed_counter:.2f} seconds")
     
