@@ -32,6 +32,7 @@ from typing import Any
 from pxr import Usd, UsdGeom # type: ignore
 from Scripts.DaisyTools.core.core import get_core
 from Scripts.DaisyTools.core.get_entity_info import get_entity_info
+from Scripts.DaisyTools.core.framerange_convert import FramerangeFile
 from Scripts.DaisyTools.template_scripts.create_toolbox import create_toolbox
 
 print("execute template_RLO.py\n\n")
@@ -87,6 +88,7 @@ usd_file_format = config_file["global"]["usd_file_format"]
 
 def python_command() -> str:
     #-----------------------------------------------------------------------#
+    ################################ OUTDATED ###############################
     # Create a python script to place into a python lop node                #
     # works only for the shot                                               #
     #                                                                       #
@@ -108,7 +110,7 @@ if parent_prim:
             continue
         output += str(child.GetPath()) + " "
 else:
-    raise Error("no parent primitive named cam, check if it exists an placed as a child of the assembly prim (with sequence and shot name)")
+    raise Exception("no parent primitive named cam, check if it exists an placed as a child of the assembly prim (with sequence and shot name)")
 
 # put the output value in a custom parameter
 node_ptg = node.parmTemplateGroup()
@@ -120,6 +122,7 @@ node.parm("output_param").set(output)
 
 def cam_to_delete(last_node) -> str:
     #-----------------------------------------------------------------------#
+    ################################ OUTDATED ###############################
     # Create a python lop node to get the list of cameras to delete         #
     # works only for the shot                                               #
     #                                                                       #
@@ -140,6 +143,20 @@ def cam_to_delete(last_node) -> str:
     tmp_node.destroy()
     return cam_to_delete
 
+def define_time_offset() -> int:
+    #-----------------------------------------------------------------------#
+    # get the difference between the start frame of the MASTER and the shot #
+    # works only for the shot                                               #
+    #                                                                       #
+    # return an int containing the number of frames to offset               #
+    #-----------------------------------------------------------------------#
+
+    framerange_file = FramerangeFile()
+    start_MASTER_frame = framerange_file.get_master_range(sequence_name, shot_name)[0]
+    start_shot_frame = framerange_file.get_shot_range(sequence_name, shot_name)[0]
+    time_offset = start_shot_frame - start_MASTER_frame
+    return time_offset
+
 def node_template_RLO() -> dict[str,Any]:
     #-------------------------------------------------------------------------------#
     # This function creates the houdini node template for the RLO department        #
@@ -155,24 +172,31 @@ def node_template_RLO() -> dict[str,Any]:
     #-------------------------------- create nodes ---------------------------------#
     lopnet = hou.node("/stage")
 
-    ref_MASTER_RLO1 = lopnet.createNode("reference")
+    ref_MASTER_RLO1 = lopnet.createNode("sublayer")
     ref_MASTER_RLO1.setName("ref_MASTER_RLO1")
-    ref_MASTER_RLO1.parm("enable").set(0)
-    ref_MASTER_RLO1.parm("primpath1").set(f"/{seq_and_sht_name}")
+    ref_MASTER_RLO1.parm("loadpayloads").set(0)
     ref_MASTER_RLO1.parm("filepath1").set(f"$PRISM_JOB/03_production/shots/{sequence_name}/MASTER/Export/RLO/master/{sequence_name}_MASTER_RLO_master.{usd_file_format}")
+    ref_MASTER_RLO1.parm("timeoffset1").set(define_time_offset())
 
     scale_down_RLO1 = lopnet.createNode("xform")
     scale_down_RLO1.setName("scale_down_RLO1")
     scale_down_RLO1.setInput(0, ref_MASTER_RLO1)
     scale_down_RLO1.setColor(hou.Color(color_input_box))
     scale_down_RLO1.parm("scale").set(0.01)
-    scale_down_RLO1.parm("primpattern").set(f"/{seq_and_sht_name}")
+    scale_down_RLO1.parm("primpattern").set("/*")
 
-    cameras_to_delete = cam_to_delete(ref_MASTER_RLO1)
+    rename_assembly1 = lopnet.createNode("restructurescenegraph")
+    rename_assembly1.setName("rename_assembly1")
+    rename_assembly1.setInput(0, scale_down_RLO1)
+    rename_assembly1.setColor(hou.Color(color_input_box))
+    rename_assembly1.parm("op").set(1)# rename primitives
+    rename_assembly1.parm("primnewname").set(seq_and_sht_name)
+
+    cameras_to_delete = f"%type:Camera ^{seq_and_sht_name}/cam/cam_{seq_and_sht_name}"
 
     unload_cam1 = lopnet.createNode("prune")
     unload_cam1.setName("unload_cam1")
-    unload_cam1.setInput(0, scale_down_RLO1)
+    unload_cam1.setInput(0, rename_assembly1)
     unload_cam1.setColor(hou.Color(color_input_box))
     unload_cam1.parm("primpattern1").set(cameras_to_delete)
     unload_cam1.parm("method").set("deactivate")
@@ -189,16 +213,9 @@ def node_template_RLO() -> dict[str,Any]:
     hide_cam1.parm("sethideinui").set(1)
     hide_cam1.parm("hideinui").set(1)
 
-    unload_payloads1 = lopnet.createNode("configurestage")
-    unload_payloads1.setName("unload_payloads1")
-    unload_payloads1.setInput(0, hide_cam1)
-    unload_payloads1.setColor(hou.Color(color_input_box))
-    unload_payloads1.parm("editload").set("addremove")# add and remove primitives to load
-    unload_payloads1.parm("unloadpattern").set("*")
-
     camera_edit1 = lopnet.createNode("camera")
     camera_edit1.setName("camera_edit1")
-    camera_edit1.setInput(0, unload_payloads1)
+    camera_edit1.setInput(0, hide_cam1)
     camera_edit1.parm("primpattern").set(f"/{seq_and_sht_name}/cam/cam_{seq_and_sht_name}")
     camera_edit1.parm("createprims").set(0)# edit
 
@@ -226,9 +243,9 @@ def node_template_RLO() -> dict[str,Any]:
     node_list.update({
         "ref_MASTER_RLO1": ref_MASTER_RLO1,
         "scale_down_RLO1": scale_down_RLO1,
+        "rename_assembly1": rename_assembly1,
         "unload_cam1": unload_cam1,
         "hide_cam1": hide_cam1,
-        "unload_payloads1": unload_payloads1,
         "camera_edit1": camera_edit1,
         "scale_up1": scale_up1,
         "config_layer1": config_layer1,
@@ -245,7 +262,7 @@ def node_template_RLO() -> dict[str,Any]:
     node_list["usd_rop1"].move([0, -6])
 
     # set input network box
-    nodes_in_input_box = ["ref_MASTER_RLO1", "scale_down_RLO1", "unload_cam1", "hide_cam1", "unload_payloads1"]
+    nodes_in_input_box = ["ref_MASTER_RLO1", "scale_down_RLO1", "rename_assembly1", "unload_cam1", "hide_cam1"]
     input_box = lopnet.createNetworkBox()
     input_box.setName("input_box")
     for node in nodes_in_input_box:
@@ -267,7 +284,8 @@ def node_template_RLO() -> dict[str,Any]:
     node_list.update({"output_box" : output_box})
 
     # set display flag
-    node_list["unload_payloads1"].setDisplayFlag(True)
+    node_list["hide_cam1"].setDisplayFlag(True)
+    node_list["hide_cam1"].setSelected(1, clear_all_selected=True)
 
     #-------------------------------- create toolbox ---------------------------------#
     node_list.update(create_toolbox(["primitive",
