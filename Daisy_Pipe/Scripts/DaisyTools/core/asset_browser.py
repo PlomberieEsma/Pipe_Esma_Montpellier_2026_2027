@@ -98,6 +98,18 @@ class AssetBrowserUI(object):
             self.assetBrowserDlg.setWindowTitle("Asset Browser")
             self.assetBrowserDlg.resize(700, 600)
 
+            # Set Window Icon
+            iconPath = os.path.join(
+                self.core.projectPath,
+                "00_Pipeline", "Plugins", "Daisy_Pipe", "Integration", "ui", "daisy_logo.png"
+            )
+            iconPath = os.path.normpath(iconPath)
+
+            if os.path.isfile(iconPath):
+                self.assetBrowserDlg.setWindowIcon(QIcon(iconPath))
+            else:
+                self.core.popup("Icône introuvable: %s" % iconPath)
+
             mainLayout = QVBoxLayout(self.assetBrowserDlg)
 
             # NOUVELLE LIGNE TOUT EN HAUT : rappel Séquence / Shot
