@@ -181,7 +181,10 @@ class Prism_Daisy_Pipe_Functions(object):
 
         # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
         entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
-        self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
+        
+        imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
+        self.core.popup("for TOTO: %s" % imported_asset_list)
+        return imported_asset_list
 
 
     ##############################################################################################################
