@@ -38,7 +38,7 @@ class SelectedAssetsList(QTreeWidget):
 
     #-----------------------------------------------------------------------------------#
     # Class used in the Asset Browser to handle the asset movement between lists        #
-    # Actions to Drag and Drop the Asset from the origin list to the selected list      #
+    # Actions to Drag and Drop the Asset from the left list to the selected list        #
     # Action to Delete the Asset from the selected list                                 #
     #-----------------------------------------------------------------------------------#
 
@@ -86,6 +86,8 @@ class AssetBrowserUI(object):
         #-----------------------------------------------------------------------------------#
 
         self.core.popup("Current entity: %s" % entity)
+
+        self.toImportAsset = []  # valeur par défaut si l'utilisateur ferme sans valider
 
         try:
             allAssetPaths = self.core.entities.getAssetPaths()
@@ -196,9 +198,12 @@ class AssetBrowserUI(object):
             self.btn_validate.clicked.connect(self.onValidateAssetsBrowser)
             mainLayout.addWidget(self.btn_validate)
 
-            self.assetBrowserDlg.show()
+            result = self.assetBrowserDlg.exec_()  # bloquant, remplace .show()
+            return self.toImportAsset if result == QDialog.Accepted else []
+
         except Exception as e:
             self.core.popup("Erreur AssetBrowser: %s" % e)
+            return []
 
     def onAssetsDropped(self):
         
@@ -289,10 +294,9 @@ class AssetBrowserUI(object):
             toImportAsset.append({"name": name, "asset_path": assetPath})
 
         # Check the toImportAsset before creating the scene
-        self.core.popup(f"Selected assets: {toImportAsset}")
-        self.assetBrowserDlg.hide()
-        return toImportAsset
-        
+        # self.core.popup(f"Selected assets: {toImportAsset}")
+        self.toImportAsset = toImportAsset          # stocké pour la fonction appelante
+        self.assetBrowserDlg.accept()               # ferme le dialogue proprement (au lieu de .hide())
     
     def getMasterSetDress(self, entity):
         #-----------------------------------------------------------------------------------#
