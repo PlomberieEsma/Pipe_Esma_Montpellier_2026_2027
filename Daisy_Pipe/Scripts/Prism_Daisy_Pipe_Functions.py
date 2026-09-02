@@ -63,6 +63,21 @@ class Prism_Daisy_Pipe_Functions(object):
         if self.isMaya():
             self.core.registerCallback("onStateManagerOpen", self.onStateManagerOpen, plugin=self)
 
+        if self.isMaya() or self.isHoudini():
+            self.core.registerCallback("sceneSaved", self.onSceneSaved, plugin=self)
+
+    @err_catcher(name=__name__)
+    def onSceneSaved(self, *args, **kwargs):
+
+        #-----------------------------------------------------------------------------------#
+        # A work scene was just saved: once the task piles up too many versions,            #
+        # offer to clean them up - same deal as the product check after an export           #
+        #-----------------------------------------------------------------------------------#
+
+        from DaisyTools.ui.version_cleanup import checkSceneVersionLimit
+
+        checkSceneVersionLimit(self.core)
+
     def onStateManagerOpen(self, origin):
         import importlib
         from DaisyTools.ui import maya_state_manager
@@ -351,4 +366,4 @@ class Prism_Daisy_Pipe_Functions(object):
 
     def isHoudini(self):
 
-        return self.core.appPlugin.pluginName == "Houdni"
+        return self.core.appPlugin.pluginName == "Houdini"

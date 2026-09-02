@@ -1,5 +1,6 @@
 import sys
 
+from DaisyTools.core.core import get_core
 from DaisyTools.core.dcc.launcher import get_qt, get_main_window
 
 QtWidgets, QtCore, QtGui = get_qt()
@@ -14,8 +15,14 @@ class AssetSetupWindow(QtWidgets.QDialog):
             parent = get_main_window()
         super(AssetSetupWindow, self).__init__(parent)
 
-        self.setWindowTitle("Asset Setup")
+        self.setWindowTitle("Shot Setup")
         self.resize(480, 220)
+
+        # change window icon - projectPath is the project root, so it resolves
+        # the same way whether we're working on an asset or on a shot
+        core = get_core()
+        project_path = core.projectPath.replace("\\", "/").rstrip("/")
+        self.setWindowIcon(QtGui.QIcon(f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Integration/ui/daisy_logo.png"))
 
         # On macOS make the window a Tool to keep it on top of the DCC
         if sys.platform == "darwin":
@@ -29,8 +36,7 @@ class AssetSetupWindow(QtWidgets.QDialog):
         self.create_connections()
 
     def create_widgets(self):
-        self.departments = ["Modeling", "Surfacing", "FX", "CFX"]
-
+        self.departments = ["SetDressing", "RLO", "FLO", "TLO","Animation", "FX", "CFX", "Lighting"]
         self.l_header = QtWidgets.QLabel("Setup Departments:")
 
         self.checkboxes = []
