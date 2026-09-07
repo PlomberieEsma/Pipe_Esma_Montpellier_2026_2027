@@ -71,7 +71,7 @@ class SelectedAssetsList(QTreeWidget):
             super(SelectedAssetsList, self).keyPressEvent(event)
 
 class AssetBrowserUI(object):
-    def __init__(self, core, plugin):
+    def __init__(self, core, plugin = None):
         self.core = core
         self.plugin = plugin
 
@@ -85,7 +85,7 @@ class AssetBrowserUI(object):
         # Entity imported for shot and sequence 
         #-----------------------------------------------------------------------------------#
 
-        self.core.popup("Current entity: %s" % entity)
+        # self.core.popup("Current entity: %s" % entity)
 
         self.toImportAsset = []  # valeur par défaut si l'utilisateur ferme sans valider
 

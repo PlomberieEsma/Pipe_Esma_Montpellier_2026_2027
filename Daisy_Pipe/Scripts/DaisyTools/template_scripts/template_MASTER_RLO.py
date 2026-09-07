@@ -357,4 +357,4 @@ def nodes_template_MASTER_RLO(imported_assets: list[dict[str,str]]) -> dict[str,
 #=========================================================== CALL FUNCTIONS ==============================================================
 ##########################################################################################################################################
 
-nodes_template_MASTER_RLO(imported_assets)
+# nodes_template_MASTER_RLO(imported_assets)

@@ -85,34 +85,34 @@ usd_file_format = config_file["global"]["usd_file_format"]
 #___________________________________________________________________________________________________________________________________________________________________________________________________
 #|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 # valeurs temporaires pour tester
-imported_assets = [
-        {"name": "Bobibob", "asset_path": "Char/Bobibob"},
-        {"name": "terrain", "asset_path": "Enviro/terrain"},
-        {"name": "grass_blade", "asset_path": "Item/grass_blade"}
-    ]
+# imported_assets = [
+#         {"name": "Bobibob", "asset_path": "Char/Bobibob"},
+#         {"name": "terrain", "asset_path": "Enviro/terrain"},
+#         {"name": "grass_blade", "asset_path": "Item/grass_blade"}
+#     ]
 #|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 #▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 ##########################################################################################################################################
 #============================================================ SET CLASSES ================================================================
 ##########################################################################################################################################
 
-class Assets_list(object):
-    def __init__(self, core: Any, plugin: Any):
-        self.core = core
-        self.plugin = plugin
+# class Assets_list(object):
+#     def __init__(self, core: Any, plugin: Any):
+#         self.core = core
+#         self.plugin = plugin
 
-    def imported_assets_list(self, entity: dict[str,str], task: str) -> list[dict[str,str]]:
-        from Scripts.Prism_Daisy_Pipe_Functions import Prism_Daisy_Pipe_Functions
-        try:
-            pipe_functions = Prism_Daisy_Pipe_Functions(self.core, self.plugin)
-            imported_asset_list = pipe_functions.onAssetBrowser(entity, task)
-        except Exception as e:
-            print(e)
-            imported_asset_list = []
-        finally:
-            assert imported_asset_list is not None
+#     def imported_assets_list(self, entity: dict[str,str], task: str) -> list[dict[str,str]]:
+#         from Scripts.Prism_Daisy_Pipe_Functions import Prism_Daisy_Pipe_Functions
+#         try:
+#             pipe_functions = Prism_Daisy_Pipe_Functions(self.core, self.plugin)
+#             imported_asset_list = pipe_functions.onAssetBrowser(entity, task)
+#         except Exception as e:
+#             print(e)
+#             imported_asset_list = []
+#         finally:
+#             assert imported_asset_list is not None
 
-        return imported_asset_list
+#         return imported_asset_list
 
 ##########################################################################################################################################
 #=========================================================== SET FUNCTIONS ===============================================================
@@ -337,11 +337,11 @@ def nodes_template_set_dress(imported_assets: list[dict[str,Any]]) -> dict[str,A
 #=========================================================== CALL FUNCTIONS ==============================================================
 ##########################################################################################################################################
 
-plugin = core.getPlugin("Daisy_Pipe")
-print(f"{plugin = }")
-print(f"{shot_entity = }")
-print(f"{shot_task = }")
-asset_list_class = Assets_list(core=core, plugin=plugin)
-imported_assets = asset_list_class.imported_assets_list(entity=shot_entity, task=shot_task)
-print(f"{imported_assets = }")
+# plugin = core.getPlugin("Daisy_Pipe")
+# print(f"{plugin = }")
+# print(f"{shot_entity = }")
+# print(f"{shot_task = }")
+# asset_list_class = Assets_list(core=core, plugin=plugin)
+# imported_assets = asset_list_class.imported_assets_list(entity=shot_entity, task=shot_task)
+# print(f"{imported_assets = }")
 # nodes_template_set_dress(imported_assets)
