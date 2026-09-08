@@ -39,7 +39,7 @@ class Command_launcher(object):
     ########################################################### SET METHODS ##############################################################
     ######################################################################################################################################
 
-    def create_asset(self, asset_name: str, current_entity: Any):
+    def create_asset(self, asset_name: str, current_entity: Any, packed: bool = False) -> None:
 
         #---------------------------------------------------------------------------------------------------#
         # launch the create_asset.py script with hython in powershell                                       #
@@ -69,7 +69,7 @@ class Command_launcher(object):
         path_to_asset = self.core.paths.getEntityPath(entity=current_entity)
 
         # create command line to launch hython with the create_asset.py script and pass the asset name and info as arguments
-        command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{path_to_asset}' --assetPath '{asset_path}' --projectPath '{project_path}' "
+        command_line = f"powershell.exe \"{to_hython_path}\" ; ./hython.exe \"{python_file_path}\" --assetName \'{asset_name}\' --path '{path_to_asset}' --assetPath '{asset_path}' --projectPath '{project_path}' --packed '{packed}'"
 
         # launch command line in powershell
         subprocess.Popen(command_line)

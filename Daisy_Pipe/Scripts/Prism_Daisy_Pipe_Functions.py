@@ -179,12 +179,15 @@ class Prism_Daisy_Pipe_Functions(object):
         # Launch the create asset function from Toto's script                               #
         #-----------------------------------------------------------------------------------#
 
-        # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
-        entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
-        
-        imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
-        self.core.popup("for TOTO: %s" % imported_asset_list)
-        return imported_asset_list
+        try:
+            # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
+            # entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
+            
+            imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
+            self.core.popup("for TOTO: %s" % imported_asset_list)
+            return imported_asset_list
+        except Exception as e:
+            self.core.popup("No entity: Asset Browser can't be opened:\n%s" % e) 
 
 
     ##############################################################################################################
@@ -214,6 +217,11 @@ class Prism_Daisy_Pipe_Functions(object):
         createUsdAssetAction.triggered.connect(lambda: self.onCreateUsdAsset(item))
         rcMenu.addAction(createUsdAssetAction)
 
+        # Create an action named "Pack USD Asset" and add it to the context menu
+        packUsdAssetAction = QAction( "Pack USD Asset", origin)
+        packUsdAssetAction.triggered.connect(lambda: self.onPackUsdAsset(item))
+        rcMenu.addAction(packUsdAssetAction)
+
     def onCreateUsdAsset(self, item):
         
         #-----------------------------------------------------------------------------------#
@@ -223,6 +231,17 @@ class Prism_Daisy_Pipe_Functions(object):
 
         self.core.popup("Create USD for asset: %s" % item["asset"])
         self.Command_launcher.create_asset(item["asset"], item)
+
+
+    def onPackUsdAsset(self, item):
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the selected asset from the Pack USD Asset option
+        # Launch the pack asset function from Toto's script
+        #-----------------------------------------------------------------------------------#
+
+        self.core.popup("Pack USD for asset: %s" % item["asset"])
+        self.Command_launcher.create_asset(item["asset"], item, packed=True)
 
 
     ##############################################################################################################
@@ -277,7 +296,7 @@ class Prism_Daisy_Pipe_Functions(object):
         #-----------------------------------------------------------------------------------#
         
         # Check existing tasks and determine the right name
-        if f"{taskName}_02" not in existingTasks:
+        if f"{taskName}_var02" not in existingTasks:
             varTaskName = f"{taskName}_var02"
         else:
             varTaskName = None
