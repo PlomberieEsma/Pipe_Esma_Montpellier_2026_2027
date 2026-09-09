@@ -338,7 +338,6 @@ class Prism_Daisy_Pipe_Functions(object):
 
         version = origin.getCurrentVersion()
         path = version["path"]
-
         listDir = os.listdir(path)
 
 
@@ -377,6 +376,7 @@ class Prism_Daisy_Pipe_Functions(object):
         #-----------------------------------------------------------------------------------#
 
         self.Command_launcher.convert_usd_format(path, usd_in, usd_out)
+        origin.core.refreshUI()
 
 
 
