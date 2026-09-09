@@ -213,12 +213,12 @@ class Prism_Daisy_Pipe_Functions(object):
             return
         
         # Create an action named "Create USD Asset" and add it to the context menu
-        createUsdAssetAction = QAction( "Create USD Asset", origin)
+        createUsdAssetAction = QAction(QIcon(self.daisyIcon("CreateUSD.png")), "Create USD Asset", origin)
         createUsdAssetAction.triggered.connect(lambda: self.onCreateUsdAsset(item))
         rcMenu.addAction(createUsdAssetAction)
 
         # Create an action named "Pack USD Asset" and add it to the context menu
-        packUsdAssetAction = QAction( "Pack USD Asset", origin)
+        packUsdAssetAction = QAction(QIcon(self.daisyIcon("PackUSD.png")), "Pack USD Asset", origin)
         packUsdAssetAction.triggered.connect(lambda: self.onPackUsdAsset(item))
         rcMenu.addAction(packUsdAssetAction)
 
@@ -347,23 +347,25 @@ class Prism_Daisy_Pipe_Functions(object):
                 usd_in = "usda"
                 usd_out = "usdc"
                 filename = link
+                iconName = "ConvertAtoC"
                 break
             elif ext == "usdc":
                 usd_in = "usdc"
                 usd_out = "usda"
                 filename = link
+                iconName = "ConvertCtoA"
                 break
             elif ext == "usd":
                 usd_in = "usd"
                 usd_out = "usda"
                 filename = link
+                iconName = "ConvertCtoA"
                 break
             else:
                 return
 
         path = f"{path}\\{filename}"
-
-        convertUsdCatAction = QAction(f"Duplicate and Convert to {usd_out}", origin)
+        convertUsdCatAction = QAction(QIcon(self.daisyIcon(iconName)),f"Duplicate and Convert to {usd_out}", origin)
         convertUsdCatAction.triggered.connect(lambda: self.onConvertUsdCat(path, usd_in, usd_out))
         rcMenu.addAction(convertUsdCatAction)
         
@@ -387,6 +389,10 @@ class Prism_Daisy_Pipe_Functions(object):
     def isActive(self):
         return True
     
+    def daisyIcon(self,iconName):
+        iconPath = os.path.join(self.pluginDirectory, "Integration", "ui", iconName)
+        return iconPath
+
 
 
 
