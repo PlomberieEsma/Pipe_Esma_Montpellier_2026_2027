@@ -26,7 +26,6 @@
 
 name = "CustomExportSettings"
 classname = "CustomExportSettings"
-
 from qtpy.QtCore import *
 from qtpy.QtGui import *
 from qtpy.QtWidgets import *
@@ -36,6 +35,7 @@ import os, sys
 
 from DaisyTools.core.command_launcher import Command_launcher
 from DaisyTools.core.asset_browser import AssetBrowserUI
+from DaisyTools.ui.maya_state_manager import EsmaUsdExportClass
 
 from PrismUtils.Decorators import err_catcher_plugin as err_catcher
 
@@ -44,6 +44,9 @@ class Prism_Daisy_Pipe_Functions(object):
     def __init__(self, core, plugin):
         self.core = core
         self.plugin = plugin
+
+        if self.isMaya():
+            self.mayastate = EsmaUsdExportClass()
 
         if self.isStandalone():
             self.importUsdPackages()
@@ -55,13 +58,21 @@ class Prism_Daisy_Pipe_Functions(object):
         self.core.registerCallback("openPBAssetTaskContextMenu", self.openPBAssetTaskContextMenu, plugin=self)
         self.core.registerCallback("openPBShotTaskContextMenu", self.openPBShotTaskContextMenu, plugin=self)
         self.core.registerCallback("openPBFileContextMenu", self.openPBFileContextMenu, plugin=self)
+        self.core.registerCallback("productSelectorContextMenuRequested", self.productSelectorContextMenu, plugin=self)
 
+        if self.isMaya():
+            self.core.registerCallback("onStateManagerOpen", self.onStateManagerOpen, plugin=self)
 
-        self.core.registerCallback("onStateStartup", self.onStateStartup, plugin=self, priority=40)
-        self.core.registerCallback("onStateGetSettings", self.onStateGetSettings, plugin=self)
-        self.core.registerCallback("onStateSettingsLoaded", self.onStateSettingsLoaded, plugin=self)
-        self.core.registerCallback("preExport", self.preExport, plugin=self)
-        self.core.registerCallback("postExport", self.postExport, plugin=self)
+    def onStateManagerOpen(self, origin):
+        import importlib
+        from DaisyTools.ui import maya_state_manager
+        importlib.reload(maya_state_manager)
+        origin.loadState(maya_state_manager.EsmaUsdExportClass)
+
+        menu = QMenu(origin.b_createExport)
+        menu.addAction("Export", lambda: origin.createState("Export", setActive=True))
+        menu.addAction("EsmaUsdExport", lambda: origin.createState("EsmaUsdExport", setActive=True))
+        origin.b_createExport.setMenu(menu)
 
         # TOP GENERAL Menu
     def onProjectBrowserStartup(self, origin):
@@ -168,12 +179,15 @@ class Prism_Daisy_Pipe_Functions(object):
         # Launch the create asset function from Toto's script                               #
         #-----------------------------------------------------------------------------------#
 
-        # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
-        entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
-        
-        imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
-        self.core.popup("for TOTO: %s" % imported_asset_list)
-        return imported_asset_list
+        try:
+            # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
+            # entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
+            
+            imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
+            self.core.popup("for TOTO: %s" % imported_asset_list)
+            return imported_asset_list
+        except Exception as e:
+            self.core.popup("No entity: Asset Browser can't be opened:\n%s" % e) 
 
 
     ##############################################################################################################
@@ -203,6 +217,11 @@ class Prism_Daisy_Pipe_Functions(object):
         createUsdAssetAction.triggered.connect(lambda: self.onCreateUsdAsset(item))
         rcMenu.addAction(createUsdAssetAction)
 
+        # Create an action named "Pack USD Asset" and add it to the context menu
+        packUsdAssetAction = QAction( "Pack USD Asset", origin)
+        packUsdAssetAction.triggered.connect(lambda: self.onPackUsdAsset(item))
+        rcMenu.addAction(packUsdAssetAction)
+
     def onCreateUsdAsset(self, item):
         
         #-----------------------------------------------------------------------------------#
@@ -212,6 +231,17 @@ class Prism_Daisy_Pipe_Functions(object):
 
         self.core.popup("Create USD for asset: %s" % item["asset"])
         self.Command_launcher.create_asset(item["asset"], item)
+
+
+    def onPackUsdAsset(self, item):
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the selected asset from the Pack USD Asset option
+        # Launch the pack asset function from Toto's script
+        #-----------------------------------------------------------------------------------#
+
+        self.core.popup("Pack USD for asset: %s" % item["asset"])
+        self.Command_launcher.create_asset(item["asset"], item, packed=True)
 
 
     ##############################################################################################################
@@ -266,7 +296,7 @@ class Prism_Daisy_Pipe_Functions(object):
         #-----------------------------------------------------------------------------------#
         
         # Check existing tasks and determine the right name
-        if f"{taskName}_02" not in existingTasks:
+        if f"{taskName}_var02" not in existingTasks:
             varTaskName = f"{taskName}_var02"
         else:
             varTaskName = None
@@ -287,6 +317,72 @@ class Prism_Daisy_Pipe_Functions(object):
         return path
 
 
+    ##############################################################################################################
+    ###########################     PRODUCT VERSION Contextual Menu - USDcat     #################################
+    ##############################################################################################################
+
+
+    def productSelectorContextMenu(self, origin, widget, pos, rcMenu):
+        # On ne veut agir que sur la liste des versions, pas sur la liste des produits
+        if widget != origin.tw_versions:
+            return
+
+        row = widget.rowAt(pos.y())
+        if row == -1:
+            return  # clic dans une zone vide, pas sur une version
+
+        # Récupère l'objet "version" complet (colonne 0, data stockée en UserRole)
+        version = widget.model().index(row, 0).data(Qt.UserRole)
+        if not version:
+            return
+
+        version = origin.getCurrentVersion()
+        path = version["path"]
+        self.core.popup(path)
+
+        listDir = os.listdir(path)
+        self.core.popup("Contenu du dossier : %s" % listDir)
+
+
+        for link in listDir:
+            ext=link.split(".")[-1]
+            if ext == "usda":
+                self.core.popup("AAAA")
+                usd_in = "usda"
+                usd_out = "usdc"
+                filename = link
+                break
+            elif ext == "usdc":
+                self.core.popup("CCCC")
+                usd_in = "usdc"
+                usd_out = "usda"
+                filename = link
+                break
+            elif ext == "usd":
+                self.core.popup("UUUU")
+                usd_in = "usd"
+                usd_out = "usda"
+                filename = link
+                break
+            else:
+                return
+
+        path = f"{path}\\{filename}"
+
+        convertUsdCatAction = QAction(f"Duplicate and Convert to {usd_out}", origin)
+        convertUsdCatAction.triggered.connect(lambda: self.onConvertUsdCat(path, usd_in, usd_out))
+        rcMenu.addAction(convertUsdCatAction)
+        
+
+    def onConvertUsdCat(self, path, usd_in, usd_out):
+        
+        #-----------------------------------------------------------------------------------#
+        # Get the selected product version from the Create USDcat option                    #
+        # Launch the create USDcat function from Toto's script                              #
+        #-----------------------------------------------------------------------------------#
+
+        self.core.popup(f"Create USDcat for product version: {path} \nInput format: {usd_in} \nOutput format: {usd_out}")
+        self.Command_launcher.convert_usd_format(path, usd_in, usd_out)
 
 
 
@@ -329,97 +425,6 @@ class Prism_Daisy_Pipe_Functions(object):
         except Exception as e:
             print("USD packages could not be imported", str(e))
             return
-        
-    def onStateStartup(self, state):
-        # this function is used to create the GUI widgets every time a state gets created
-
-        # only for export states
-        if state.className == "Export":
-
-            # create the "Setting1" widgets only in Houdini
-            if self.core.appPlugin.pluginName == "Houdini":
-
-                # get the layout of the state settings, which the new widgets will be added to
-                lo = state.gb_general.layout()
-
-                # create a widget with a label and a checkbox
-                state.w_setting1 = QWidget()
-                state.lo_setting1 = QHBoxLayout(state.w_setting1)
-                state.lo_setting1.setContentsMargins(9, 0, 9, 0)
-                state.l_setting1 = QLabel("Setting 1:")
-                state.chb_setting1 = QCheckBox()
-                state.lo_setting1.addWidget(state.l_setting1)
-                state.lo_setting1.addStretch()
-                state.lo_setting1.addWidget(state.chb_setting1)
-                lo.addWidget(state.w_setting1)
-
-                # save the state settings when the checkbox gets toggled
-                state.chb_setting1.toggled.connect(lambda s: state.stateManager.saveStatesToScene())
-
-            # create the "Settings2" widgets only when the state has job submission widgets (for Deadline job submissions)
-            if hasattr(state, "gb_submit"):
-
-                # get the layout of the state settings, which the new widgets will be added to
-                lo = state.gb_submit.layout()
-
-                # create a widget with a label and a combobox
-                state.w_setting2 = QWidget()
-                state.lo_setting2 = QHBoxLayout(state.w_setting2)
-                state.lo_setting2.setContentsMargins(9, 0, 9, 0)
-                state.l_setting2 = QLabel("Setting 2:")
-                state.cb_setting2 = QComboBox()
-                state.cb_setting2.setMinimumWidth(150)
-                state.lo_setting2.addWidget(state.l_setting2)
-                state.lo_setting2.addStretch()
-                state.lo_setting2.addWidget(state.cb_setting2)
-                options = ["setting1", "setting2", "Option3"]
-                state.cb_setting2.addItems(options)
-                lo.addWidget(state.w_setting2)
-
-                # save the state settings when the current dropdown item gets changed
-                state.cb_setting2.currentIndexChanged.connect(lambda s: state.stateManager.saveStatesToScene())
-
-    def onStateGetSettings(self, state, settings):
-        # this function collects the currents settings from the GUI widgets in order to save the settings
-
-        if state.className == "Export":
-            if self.core.appPlugin.pluginName == "Houdini":
-                settings["setting1"] = state.chb_setting1.isChecked()
-
-            if hasattr(state, "gb_submit"):
-                settings["setting2"] = state.cb_setting2.currentText()
-
-    def onStateSettingsLoaded(self, state, settings):
-        # this function loads the state settings from a dict to the GUI widgets
-
-        if state.className == "Export":
-            if self.core.appPlugin.pluginName == "Houdini":
-                if "setting1" in settings:
-                    state.chb_setting1.setChecked(settings["setting1"])
-
-            if hasattr(state, "gb_submit"):
-                if "setting2" in settings:
-                    idx = state.cb_setting2.findText(settings["setting2"])
-                    if idx != -1:
-                        state.cb_setting2.setCurrentIndex(idx)
-
-    def preExport(self, **kwargs):
-        # this function will be executed before the export started
-
-        if self.core.appPlugin.pluginName == "Houdini":
-            checked = kwargs["state"].chb_setting1.isChecked()
-            # do things with this setting in the current scene
-
-        if hasattr(kwargs["state"], "gb_submit"):
-            option = kwargs["state"].cb_setting2.currentText()
-            # do things with this setting in the current scene
-
-    def postExport(self, **kwargs):
-        # this function will be executed after the export completed
-
-        if self.core.appPlugin.pluginName == "Houdini":
-            checked = kwargs["state"].chb_setting1.isChecked()
-            self.core.popup("Exported with setting1: %s" % (bool(checked)))
 
     def isMaya(self):
 
