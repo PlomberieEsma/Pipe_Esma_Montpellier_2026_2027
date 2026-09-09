@@ -84,9 +84,9 @@ class Prism_Daisy_Pipe_Functions(object):
         #-----------------------------------------------------------------------------------#
 
         origin.daisyMenu = QMenu("DaisyMenu")
-        # onAssetBrowserAction = QAction( "Asset Browser", origin)
-        # onAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin))
-        # origin.daisyMenu.addAction(onAssetBrowserAction)
+        onAssetBrowserAction = QAction( "convert USD", origin)
+        onAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin))
+        origin.daisyMenu.addAction(onAssetBrowserAction)
         origin.menubar.addMenu(origin.daisyMenu)
 
     ##############################################################################################################
@@ -179,15 +179,18 @@ class Prism_Daisy_Pipe_Functions(object):
         # Launch the create asset function from Toto's script                               #
         #-----------------------------------------------------------------------------------#
 
-        try:
-            # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
-            # entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
+        # try:
+        #     # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
+        #     # entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
             
-            imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
-            self.core.popup("for TOTO: %s" % imported_asset_list)
-            return imported_asset_list
-        except Exception as e:
-            self.core.popup("No entity: Asset Browser can't be opened:\n%s" % e) 
+        #     imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
+        #     self.core.popup("for TOTO: %s" % imported_asset_list)
+        #     return imported_asset_list
+        # except Exception as e:
+        #     self.core.popup("No entity: Asset Browser can't be opened:\n%s" % e) 
+
+        from DaisyTools.core.command_launcher import Command_launcher
+        Command_launcher(core=self.core).convert_usd_format("entity", usd_in="usda", usd_out="usdc")
 
 
     ##############################################################################################################
