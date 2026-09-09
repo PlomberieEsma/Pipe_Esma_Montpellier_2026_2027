@@ -74,11 +74,11 @@ class Command_launcher(object):
         # launch command line in powershell
         subprocess.Popen(command_line)
 
-    def convert_usd_format(self, entity: Any, usd_in: str = "usd", usd_out: str = "usda") -> None:
+    def convert_usd_format(self, path: Any, usd_in: str = "usdc", usd_out: str = "usda") -> None:
         #---------------------------------------------------------------------------------------------------#
         # launch usdcat in powershell to convert USD format                                                 #
         #                                                                                                   #       
-        # entity : the entity for which to convert USD format                                               #
+        # path : the path for which to convert USD format                                                   #
         # usd_in : the input USD format                                                                     #
         # usd_out : the output USD format                                                                   #
         #---------------------------------------------------------------------------------------------------#
@@ -87,19 +87,15 @@ class Command_launcher(object):
         usdcat_path_to_del = usdcat_path.split("/")[-1]
         usdcat_path = usdcat_path.replace(f"/{usdcat_path_to_del}", "")
 
-        input_path = None
-        print(f"{input_path = }")
-        output_path = None
-        print(f"{output_path = }")
+        input_path = path
+        output_path = path.replace(usd_in, usd_out)
         to_usdcat_path = f"cd \'{usdcat_path}\'"
-        print(f"{to_usdcat_path = }")
 
         # create command line to convert USD format using usdcat
         if usd_out == "usd":
             command_line = f"powershell.exe \"{to_usdcat_path}\" ; ./usdcat --out \"{output_path}\" --usdFormat \"{usd_out}\" \"{input_path}.{usd_out}\""
         else:
             command_line = f"powershell.exe \"{to_usdcat_path}\" ; ./usdcat --out \"{output_path}\" \"{input_path}\""
-        print(f"{command_line = }")
 
         # launch command line in powershell
         subprocess.Popen(command_line)
