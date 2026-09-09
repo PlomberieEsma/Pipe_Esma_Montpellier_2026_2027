@@ -349,7 +349,6 @@ class AssetBrowserUI(object):
         # Scan manuel du dossier pour trouver la dernière version
         pattern = re.compile(rf"{re.escape(sequence)}_SetDress_v(\d+)preview\.jpg", re.IGNORECASE)
 
-        self.core.popup("still here")
         matches = []
         for fname in os.listdir(setDressFolder):
             m = pattern.match(fname)
