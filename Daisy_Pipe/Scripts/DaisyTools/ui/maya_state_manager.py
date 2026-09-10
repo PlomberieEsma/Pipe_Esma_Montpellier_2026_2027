@@ -50,7 +50,6 @@ class EsmaUsdExportClass(QWidget):
         self.setupUi()
         self.connectEvents()
         self.initializeContextDefaults()
-        self.initializeExistingSelection()
 
         if stateData is not None:
             self.loadData(stateData)
@@ -240,48 +239,63 @@ class EsmaUsdExportClass(QWidget):
         return list(dict.fromkeys(nodes))
 
     @err_catcher(name=__name__)
-    def initializeExistingSelection(self):
+    def setObjects(self, nodes):
 
         #-----------------------------------------------------------------------------------#
-        # Reflect any export selection already present in the scene                         #
-        # (geo set or group from a previous export) in the Maya Objects list                #
-        # instead of leaving that list empty                                                #
+        # Replace the Maya Objects list with the given nodes                                #
         #-----------------------------------------------------------------------------------#
 
-        # if this entity already has an export selection set or group in the
-        # scene (from a previous export), reflect it in the Maya Objects list
-        # instead of leaving it empty
+        self.nodes = list(nodes)
+        self.lw_objects.clear()
+        for node in self.nodes:
+            self.lw_objects.addItem(node.split("|")[-1])
+
+    @err_catcher(name=__name__)
+    def findExistingSelection(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Look for an export selection already present in the scene                         #
+        # (geo set or group from a previous export) and return its nodes                    #
+        #-----------------------------------------------------------------------------------#
+
         default_prim = self.getDefaultPrim()
         if not default_prim:
-            return
+            return []
 
         # pyrefly: ignore [missing-import]
         import maya.cmds as cmds
 
         if self.getCurrentContext().get("type") == "shot":
-            nodes = self.getReferencedGeoSetNodes()
-            if nodes:
-                self.nodes = nodes
-                self.lw_objects.clear()
-                for node in nodes:
-                    self.lw_objects.addItem(node.split("|")[-1])
-            return
+            return self.getReferencedGeoSetNodes()
 
         geo_set_name = default_prim + "_geoSet"
         if cmds.objExists(geo_set_name) and cmds.nodeType(geo_set_name) == "objectSet":
-            members = cmds.sets(geo_set_name, query=True) or []
-            if members:
-                self.nodes = members
-                self.lw_objects.clear()
-                for node in members:
-                    self.lw_objects.addItem(node.split("|")[-1])
-            return
+            return cmds.sets(geo_set_name, query=True) or []
 
         group_path = "|" + default_prim
         if cmds.objExists(group_path) and cmds.nodeType(group_path) == "transform":
-            self.nodes = [group_path]
-            self.lw_objects.clear()
-            self.lw_objects.addItem(default_prim)
+            return [group_path]
+
+        return []
+
+    @err_catcher(name=__name__)
+    def detectExistingSelection(self):
+
+        #-----------------------------------------------------------------------------------#
+        # Fill the Maya Objects list with the export selection already in the scene         #
+        # (geo set or group from a previous export), on user request                        #
+        #-----------------------------------------------------------------------------------#
+
+        nodes = self.findExistingSelection()
+        if not nodes:
+            self.core.popup(
+                "No existing export selection found in the scene.",
+                title="EsmaUsdExport",
+                severity="warning",
+            )
+            return
+
+        self.setObjects(nodes)
 
     ##############################################################################################################
     ###########################     STATE Data - Load / Save     #################################################
@@ -377,12 +391,19 @@ class EsmaUsdExportClass(QWidget):
             "QListWidget { border: 3px solid rgb(200,0,0); }"
         )
         self.b_addSelected = QPushButton("Add selected")
+        self.b_detectExisting = QPushButton("Detect from scene")
+
+        self.w_objectButtons = QWidget()
+        self.lo_objectButtons = QHBoxLayout(self.w_objectButtons)
+        self.lo_objectButtons.setContentsMargins(0, 0, 0, 0)
+        self.lo_objectButtons.addWidget(self.b_addSelected)
+        self.lo_objectButtons.addWidget(self.b_detectExisting)
 
         self.lo_source.addWidget(self.w_wholeScene)
         self.lo_source.addWidget(self.w_parentPrim)
         self.lo_source.addWidget(self.l_objects)
         self.lo_source.addWidget(self.lw_objects)
-        self.lo_source.addWidget(self.b_addSelected)
+        self.lo_source.addWidget(self.w_objectButtons)
 
         # ----------------------------------------------------------- Comment
         self.gb_comment = QGroupBox("Comment")
@@ -525,17 +546,19 @@ class EsmaUsdExportClass(QWidget):
         self.chb_parentPrim.toggled.connect(self.e_parentPrim.setEnabled)
         self.cb_rangeType.currentTextChanged.connect(self.refreshFrameRange)
         self.b_addSelected.clicked.connect(self.addSelected)
+        self.b_detectExisting.clicked.connect(self.detectExistingSelection)
 
     @err_catcher(name=__name__)
     def wholeSceneToggled(self, checked):
 
         #-----------------------------------------------------------------------------------#
-        # Disable the Maya Objects list/Add selected button                                 #
+        # Disable the Maya Objects list and its buttons                                     #
         # while 'Export whole Scene' is checked                                             #
         #-----------------------------------------------------------------------------------#
 
         self.lw_objects.setEnabled(not checked)
         self.b_addSelected.setEnabled(not checked)
+        self.b_detectExisting.setEnabled(not checked)
 
     @err_catcher(name=__name__)
     def updateRangeVisibility(self, rangeType):
@@ -584,10 +607,7 @@ class EsmaUsdExportClass(QWidget):
                 create_selection_set([geo_grp_path], geo_set_name)
                 selection = cmds.sets(geo_set_name, query=True) or [geo_grp_path]
 
-        self.nodes = selection
-        self.lw_objects.clear()
-        for node in selection:
-            self.lw_objects.addItem(node.split("|")[-1])
+        self.setObjects(selection)
 
     @err_catcher(name=__name__)
     def nameChanged(self, text):
@@ -690,6 +710,8 @@ class EsmaUsdExportClass(QWidget):
         if not outputPath:
             return [self.state.text(0) + " - error"]
 
+        self.checkVersionLimit(outputPath)
+
         result = self.core.popupQuestion(
             "USD export: %s" % outputPath,
             title="EsmaUsdExport",
@@ -700,6 +722,28 @@ class EsmaUsdExportClass(QWidget):
             self.core.openFolder(outputPath)
 
         return [self.state.text(0) + " - success"]
+
+    @err_catcher(name=__name__)
+    def checkVersionLimit(self, outputPath):
+
+        #-----------------------------------------------------------------------------------#
+        # Once exported, offer to clean up the product when it piles up too many versions   #
+        #-----------------------------------------------------------------------------------#
+
+        from DaisyTools.core.get_entity_info import get_entity_info
+        from DaisyTools.ui.version_cleanup import checkVersionLimit
+
+        info = get_entity_info()
+        if not info or not info.get("task"):
+            return
+
+        checkVersionLimit(
+            self.core,
+            info["entity"],
+            info["task"],
+            currentVersion=self.core.products.getVersionFromFilepath(outputPath),
+            parent=self.stateManager,
+        )
 
     @err_catcher(name=__name__)
     def getStateProps(self):
