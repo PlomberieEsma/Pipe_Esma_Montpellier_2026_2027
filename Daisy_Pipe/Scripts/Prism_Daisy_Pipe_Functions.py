@@ -56,8 +56,6 @@ class Prism_Daisy_Pipe_Functions(object):
         self.core.registerCallback("onProjectBrowserStartup", self.onProjectBrowserStartup, plugin=self)
         self.core.registerCallback("openPBAssetContextMenu", self.openPBAssetContextMenu, plugin=self)
         self.core.registerCallback("openPBAssetTaskContextMenu", self.openPBAssetTaskContextMenu, plugin=self)
-        self.core.registerCallback("openPBShotTaskContextMenu", self.openPBShotTaskContextMenu, plugin=self)
-        self.core.registerCallback("openPBFileContextMenu", self.openPBFileContextMenu, plugin=self)
         self.core.registerCallback("productSelectorContextMenuRequested", self.productSelectorContextMenu, plugin=self)
 
         if self.isMaya():
@@ -78,6 +76,7 @@ class Prism_Daisy_Pipe_Functions(object):
 
         checkSceneVersionLimit(self.core)
 
+
     def onStateManagerOpen(self, origin):
         import importlib
         from DaisyTools.ui import maya_state_manager
@@ -89,141 +88,33 @@ class Prism_Daisy_Pipe_Functions(object):
         menu.addAction("EsmaUsdExport", lambda: origin.createState("EsmaUsdExport", setActive=True))
         origin.b_createExport.setMenu(menu)
 
-        # TOP GENERAL Menu
+
     def onProjectBrowserStartup(self, origin):
         
         #-----------------------------------------------------------------------------------#
-        # Create a general menu 'DaisyMenu'                                                 #
-        # Create an option 'Asset Browser'                                                  #
-        # Launch the opening of the Asset Browser when 'Asset Browser' is triggered         #
+        # Create a general menu 'DaisyMenu'
         #-----------------------------------------------------------------------------------#
 
         origin.daisyMenu = QMenu("DaisyMenu")
-        # onAssetBrowserAction = QAction( "Asset Browser", origin)
-        # onAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin))
-        # origin.daisyMenu.addAction(onAssetBrowserAction)
         origin.menubar.addMenu(origin.daisyMenu)
 
-    ##############################################################################################################
-    ###########################     SHOT TASK Contextual Menu - Asset Browser     ################################
-    ##############################################################################################################
-
-    def openPBFileContextMenu (self, origin, rcMenu, widget):
-        #-----------------------------------------------------------------------------------#
-        # Create an option "Asset Browser" on the context menu in shots' files              #
-        # Only for SetDress and RLO Tasks                                                   #
-        # When clicked, launch the Asset Browser UI with the task as argument               #
-        #-----------------------------------------------------------------------------------#
-        
-        entity = origin.getCurrentEntity()
-        widgetType = "department" if widget == origin.lw_departments else "task"
-
-        if entity or entity["type"] in ["shot", "sequence"] and widgetType == "task":
-            
-            # Check the department
-            deptItem = origin.lw_departments.currentItem()
-            if not deptItem:
-                return
-            department = deptItem.data(Qt.UserRole)
-
-            # Check existing tasks and their names
-            existingTasks = self.core.entities.getCategories(entity, step=department)
-
-            if "SetDress" in existingTasks:
-                task = "SetDress"
-            elif "RLO" in existingTasks:
-                task = "RLO"
-            else:
-                return
-
-            openAssetBrowserAction = QAction("Houdini Layout Scene", origin)
-            openAssetBrowserAction.triggered.connect(
-                lambda: self.onAssetBrowser(origin, task=task)
-            )
-
-            # Recherche du sous-menu "Create new version from preset"
-            presetMenu = None
-            for act in rcMenu.actions():
-                if act.menu() and act.text() == self.core.tr("Create new version from preset"):
-                    presetMenu = act.menu()
-                    break
-
-            if presetMenu:
-                presetMenu.addAction(openAssetBrowserAction)
-            else:
-                # fallback si le sous-menu n'existe pas (ex: pas de presets configurés)
-                rcMenu.addAction(openAssetBrowserAction) 
-
-    def openPBShotTaskContextMenu(self, origin, rcMenu, widget):
-    
-        #-----------------------------------------------------------------------------------#
-        # Create an option "Asset Browser" on the context menu in shots' files              #
-        # Only for SetDress and RLO Tasks                                                   #
-        # When clicked, launch the Asset Browser UI with the task as argument               #
-        #-----------------------------------------------------------------------------------#
-        
-        entity = origin.getCurrentEntity()
-        widgetType = "department" if widget == origin.lw_departments else "task"
-
-        if entity or entity["type"] in ["shot", "sequence"] and widgetType == "task":
-            
-            # Check the department
-            deptItem = origin.lw_departments.currentItem()
-            if not deptItem:
-                return
-            department = deptItem.data(Qt.UserRole)
-
-            # Check existing tasks and their names
-            existingTasks = self.core.entities.getCategories(entity, step=department)
-
-            if "SetDress" in existingTasks:
-                openAssetBrowserAction = QAction("AssetBrowser", origin)
-                openAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin, task="SetDress"))
-                rcMenu.addAction(openAssetBrowserAction)
-            elif "RLO" in existingTasks:
-                openAssetBrowserAction = QAction("AssetBrowser", origin)
-                openAssetBrowserAction.triggered.connect(lambda: self.onAssetBrowser(origin, task="RLO"))
-                rcMenu.addAction(openAssetBrowserAction)
-            else:
-                return      
-
-    def onAssetBrowser(self, entity, task=None):
-        
-        #-----------------------------------------------------------------------------------#
-        # Get the selected asset from the Create USD Asset option                           #
-        # Launch the create asset function from Toto's script                               #
-        #-----------------------------------------------------------------------------------#
-
-        try:
-            # ENTITY TESTER !!!! TO DELETE WHEN THE CODE IS BEING IMPLEMENTED WITH THE RIGHT ENTITY
-            # entity = {'hierarchy':'sq010/sh010','itemType':'shot','sequence':'sq010','shot':'sh010','type': 'shot'}
-            
-            imported_asset_list = self.AssetBrowserUI.onAssetBrowserTriggered(entity, task)
-            self.core.popup("for TOTO: %s" % imported_asset_list)
-            return imported_asset_list
-        except Exception as e:
-            self.core.popup("No entity: Asset Browser can't be opened:\n%s" % e) 
-
 
     ##############################################################################################################
-    ###########################     ASSET Contextual Menu - Create USD      ######################################
+    ###########################     ASSET Contextual Menu - CreateUsdAsset and PackUsdAsset      #################
     ##############################################################################################################
 
     def openPBAssetContextMenu(self, origin, rcMenu, asset):
         
         #-----------------------------------------------------------------------------------#
-        # Add an option "CreateUSD Asset" to the context menu for assets                    #
-        # When clicked, launch the function onCreateUsdAsset with the asset as argument     #
+        # Add USD options to the context menu for assets (CreateUsdAsset and PackUsdAsset)
+        # When clicked, launch the functions with the asset as argument
         #-----------------------------------------------------------------------------------#
         
-        # Asset is a PySide6.QtCore.QModelIndex
         # Get the item
         item = asset.data(Qt.UserRole)
         if item is None:
             return
-        # self.core.popup("Item: %s" % item)
-
-        # Check if the item is an asset
+        
         if item["type"] != "asset":
             return
         
@@ -240,22 +131,19 @@ class Prism_Daisy_Pipe_Functions(object):
     def onCreateUsdAsset(self, item):
         
         #-----------------------------------------------------------------------------------#
-        # Get the selected asset from the Create USD Asset option                           #
-        # Launch the create asset function from Toto's script                               #
+        # Get the selected asset from the Create USD Asset option
+        # Launch the create asset function
         #-----------------------------------------------------------------------------------#
 
-        self.core.popup("Create USD for asset: %s" % item["asset"])
         self.Command_launcher.create_asset(item["asset"], item)
-
 
     def onPackUsdAsset(self, item):
         
         #-----------------------------------------------------------------------------------#
         # Get the selected asset from the Pack USD Asset option
-        # Launch the pack asset function from Toto's script
+        # Launch the pack asset function with the "packed=True" attribute
         #-----------------------------------------------------------------------------------#
 
-        self.core.popup("Pack USD for asset: %s" % item["asset"])
         self.Command_launcher.create_asset(item["asset"], item, packed=True)
 
 
@@ -266,12 +154,13 @@ class Prism_Daisy_Pipe_Functions(object):
     def openPBAssetTaskContextMenu(self, origin, rcMenu, widget):
         
         #-----------------------------------------------------------------------------------#
-        # Create a submenu "Add Variants" to the context menu for assets' task              #
-        # Add as options every current existing task                                        #
-        # When clicked, launch the function onCreateVariant with the task as argument       #
+        # Create a submenu "Add Variants" to the context menu for assets' task
+        # Add as options every current existing task
+        # When clicked, launch the function onCreateVariant with the task as argument
+        #
+        # Return - Launch the onCreateVariant function
         #-----------------------------------------------------------------------------------#
         
-        # Asset is a PySide6.QtCore.QModelIndex
         # Check where the cursor is to launch at the right spot
         entity = origin.getCurrentEntity()
         widgetType = "department" if widget == origin.lw_departments else "task"
@@ -290,6 +179,7 @@ class Prism_Daisy_Pipe_Functions(object):
 
             # Create the contextual menu and actions
             addVarMenu = QMenu("Add Variants", origin)
+            addVarMenu.setIcon(QIcon(self.daisyIcon("AddVariant.png")))
 
             if not existingBaseTasks:
                 emptyAction = QAction("No existing tasks", addVarMenu)
@@ -306,8 +196,7 @@ class Prism_Daisy_Pipe_Functions(object):
     def onCreateVariant(self, origin, entity, department, taskName, existingTasks):
         
         #-----------------------------------------------------------------------------------#
-        # Get the chosen task from the Create Variant option                                #
-        # Create the task with the same name and variant increment                          #
+        # Get the chosen task from the Create Variant option
         #-----------------------------------------------------------------------------------#
         
         # Check existing tasks and determine the right name
@@ -333,18 +222,24 @@ class Prism_Daisy_Pipe_Functions(object):
 
 
     ##############################################################################################################
-    ###########################     PRODUCT VERSION Contextual Menu - USDcat     #################################
+    ###########################     PRODUCT VERSION Contextual Menu - USD Convert     ############################
     ##############################################################################################################
 
-
     def productSelectorContextMenu(self, origin, widget, pos, rcMenu):
+        
+        #-----------------------------------------------------------------------------------#
+        # Create option to Duplicate and Convert Usd versions in the verisons RC Contextual Menu in Products
+        #
+        # Return - launch onConvertUsd function
+        #-----------------------------------------------------------------------------------#
+
         # On ne veut agir que sur la liste des versions, pas sur la liste des produits
         if widget != origin.tw_versions:
             return
 
         row = widget.rowAt(pos.y())
         if row == -1:
-            return  # clic dans une zone vide, pas sur une version
+            return
 
         # Récupère l'objet "version" complet (colonne 0, data stockée en UserRole)
         version = widget.model().index(row, 0).data(Qt.UserRole)
@@ -354,7 +249,6 @@ class Prism_Daisy_Pipe_Functions(object):
         version = origin.getCurrentVersion()
         path = version["path"]
         listDir = os.listdir(path)
-
 
         for link in listDir:
             ext=link.split(".")[-1]
@@ -380,20 +274,25 @@ class Prism_Daisy_Pipe_Functions(object):
                 return
 
         path = f"{path}\\{filename}"
-        convertUsdCatAction = QAction(QIcon(self.daisyIcon(iconName)),f"Duplicate and Convert to {usd_out}", origin)
-        convertUsdCatAction.triggered.connect(lambda: self.onConvertUsdCat(path, usd_in, usd_out))
-        rcMenu.addAction(convertUsdCatAction)
-        
+        convertUsdAction = QAction(QIcon(self.daisyIcon(iconName)),f"Duplicate and Convert to {usd_out}", origin)
+        convertUsdAction.triggered.connect(lambda: self.onConvertUsd(path, usd_in, usd_out))
+        rcMenu.addAction(convertUsdAction)
 
-    def onConvertUsdCat(self, path, usd_in, usd_out):
+    def onConvertUsd(self, path, usd_in, usd_out):
         
         #-----------------------------------------------------------------------------------#
-        # Get the selected product version from the Create USDcat option                    #
-        # Launch the create USDcat function from Toto's script                              #
+        # Get the selected product version from the Create USD option
+        # Launch the duplicate and convert USD script
+        #
+        #   path: path to the usd version folder
+        #   usd_in: format of the original file
+        #   usd_out: format of the converted file
         #-----------------------------------------------------------------------------------#
 
         self.Command_launcher.convert_usd_format(path, usd_in, usd_out)
         origin.core.refreshUI()
+
+
 
 
 
@@ -451,4 +350,4 @@ class Prism_Daisy_Pipe_Functions(object):
 
     def isHoudini(self):
 
-        return self.core.appPlugin.pluginName == "Houdini"
+        return self.core.appPlugin.pluginName == "Houdni"
