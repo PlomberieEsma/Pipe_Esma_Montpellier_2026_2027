@@ -30,17 +30,22 @@
 # delete_versions_window.py so it can be opened from anywhere else too              #
 #-----------------------------------------------------------------------------------#
 
-import os
+import os, json
 
 from PrismUtils.Decorators import err_catcher
 
 from DaisyTools.ui.delete_versions_window import openDeleteVersionsWindow
 
+#get variables from config.json
+config_file_path = f"{project_path}/00_Pipeline/Plugins/Daisy_Pipe/Scripts/DaisyTools/lib/config.json"
+with open(config_file_path, mode="r", encoding="utf-8") as read_file:
+    config_file = json.load(read_file)
+
 #how many versions of a product we keep before offering a clean up
-MAX_VERSIONS = 10
+MAX_VERSIONS = config_file["global"]["max_product_version"]
 
 #same idea for the work scenes of a task (Maya .ma/.mb, Houdini .hip/.hipnc/.hiplc)
-MAX_SCENE_VERSIONS = 25
+MAX_SCENE_VERSIONS = config_file["global"]["max_scene_version"]
 
 
 @err_catcher(name=__name__)
